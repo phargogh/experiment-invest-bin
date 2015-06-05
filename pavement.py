@@ -88,7 +88,7 @@ def env(options):
         "bootstrap_file": options.virtualenv.script_name,
         "env_name": env_dirname,
     }
-    err_code = subprocess.call(bootstrap_cmd % bootstrap_opts, shell=True)
+    err_code = sh(bootstrap_cmd % bootstrap_opts)
     if err_code != 0:
         print "ERROR: Environment setup failed.  See the log for details"
         return
