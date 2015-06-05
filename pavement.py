@@ -4,6 +4,7 @@ import sys
 import json
 import subprocess
 import platform
+import collections
 
 import hglib
 import paver.virtual
@@ -23,6 +24,7 @@ SCM_DATA = {
         'update': lambda d, r: hglib.open(d).update(r),
         'clone_cmd': 'hg clone %(url)s %(dest)s',
         'update_cmd': 'hg update -R %(dest)s -r %(rev)s',
+        'tip': 'tip',
     },
     'svn': {
         'statedir': '.svn',
@@ -30,6 +32,7 @@ SCM_DATA = {
         'update': lambda d, r: paver.svn.update(d, r),
         'clone_cmd': 'svn checkout %(url)s %(dest)s',
         'update_cmd': 'cd %(dest)s && svn update -r %(rev)s',
+        'tip': 'HEAD',
     }
 }
 
@@ -113,6 +116,41 @@ def fetch(args):
 
     do_dry_run = '--dry-run' in args
 
+    # figure out which repos/revs we're hoping to update.
+    # None is our internal, temp keyword representing the LATEST possible
+    # rev.
+    user_repo_revs = {}  # repo -> version
+    repo_paths = map(lambda x: x['path'], REPOS)
+    args_queue = collections.deque(args[:])
+
+    while len(args_queue) > 0:
+        current_arg = args_queue.popleft()
+
+        # If the user provides repo revisions, it MUST be a specific repo.
+        if current_arg in repo_paths:
+            # the user might provide a revision.
+            # It's a rev if it's not a repo.
+            try:
+                possible_rev = args_queue.popleft()
+            except IndexError:
+                # When no other args after the repo
+                user_repo_revs[current_arg] = None
+                continue
+
+            if possible_rev in repo_paths:
+                # then it's not a revision, it's a repo.  put it back.
+                # Also, assume user wants the repo we're currently working with
+                # to be updated to the tip OR whatever.
+                user_repo_revs[current_arg] = None
+                args_queue.appendleft(possible_rev)
+                continue
+            elif possible_rev in ['-r', '--rev']:
+                requested_rev = args_queue.popleft()
+                user_repo_revs[current_arg] = requested_rev
+            else:
+                print "ERROR: unclear arg %s" % possible_rev
+                return
+
     # determine which groupings the user wants to operate on.
     # example: `src` would represent all repos under src/
     # example: `data` would represent all repos under data/
@@ -162,7 +200,14 @@ def fetch(args):
 
         # is repo up-to-date?  If not, update it.
         # If this is a dry run, jus print the command.
-        target_rev = json.load(open('versions.json'))[repo_dict['path']]
+        # If the user specified a target revision, use that instead.
+        try:
+            target_rev = user_repo_revs[repo_dict['path']]
+            if target_rev is None:
+                target_rev = repo_dict['tip']
+        except KeyError:
+            target_rev = json.load(open('versions.json'))[repo_dict['path']]
+
         print scm['update_cmd'] % {'dest': repo_dict['path'], 'rev': target_rev}
         if not do_dry_run:
             scm['update'](repo_dict['path'], target_rev)
