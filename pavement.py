@@ -2,6 +2,7 @@ import os
 import logging
 import sys
 import json
+import subprocess
 
 import hglib
 import paver.virtual
@@ -50,6 +51,8 @@ options(
     virtualenv = Bunch(
         script_name = "bootstrap.py",
         packages_to_install = [
+            "numpy",
+            "scipy",
             "pygeoprocessing==0.2.2",
             "psycopg2"]
     )
@@ -57,6 +60,7 @@ options(
 @task
 def env():
     paver.virtual.bootstrap()
+    subprocess.call([sys.executable, 'bootstrap.py', 'test_env'])
 
 @task
 def fetch():
