@@ -4,6 +4,7 @@ import sys
 import json
 
 import hglib
+import paver.virtual
 import paver.svn
 from paver.easy import *
 
@@ -44,6 +45,19 @@ REPOS = [
 def version(json, save):
     pass
 
+# options are accessed by virtualenv bootstrap command somehow.
+options(
+    virtualenv = Bunch(
+        script_name = "bootstrap.py",
+        packages_to_install = [
+            "pygeoprocessing==0.2.2",
+            "psycopg2"]
+    )
+)
+@task
+def env():
+    paver.virtual.bootstrap()
+
 @task
 def fetch():
     """
@@ -64,5 +78,6 @@ def fetch():
         # is repo up-to-date?  If not, update it.
         target_rev = json.load(open('versions.json'))[repo_dict['path']]
         scm['update'](repo_dict['path'], target_rev)
+
 
 
