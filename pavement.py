@@ -21,11 +21,15 @@ SCM_DATA = {
         'statedir': '.hg',
         'clone': lambda s, d: hglib.clone(s, d),
         'update': lambda d, r: hglib.open(d).update(r),
+        'clone_cmd': 'hg clone %(url)s %(dest)s',
+        'update_cmd': 'hg update -R %(dest)s -r %(rev)s',
     },
     'svn': {
         'statedir': '.svn',
         'clone': lambda s, d: paver.svn.checkout(s, d),
         'update': lambda d, r: paver.svn.update(d, r),
+        'clone_cmd': 'svn checkout %(url)s %(dest)s',
+        'update_cmd': 'cd %(dest)s && svn update -r %(rev)s',
     }
 }
 
@@ -149,15 +153,19 @@ def fetch(args):
         scm = SCM_DATA[repo_dict['scm']]
         repo_state_dir = os.path.join(repo_dict['path'], scm['statedir'])
         if not os.path.exists(repo_state_dir):
-            print 'cloning %s' % repo_dict['path']
-            scm['clone'](repo_dict['url'], repo_dict['path'])
+            print scm['clone_cmd'] % {'url': repo_dict['url'],
+                                      'dest': repo_dict['path']}
+            if not do_dry_run:
+                scm['clone'](repo_dict['url'], repo_dict['path'])
         else:
             LOGGER.debug('Repository %s exists', repo_dict['path'])
 
         # is repo up-to-date?  If not, update it.
-        print 'Updating %s' % repo_dict['path']
+        # If this is a dry run, jus print the command.
         target_rev = json.load(open('versions.json'))[repo_dict['path']]
-        scm['update'](repo_dict['path'], target_rev)
+        print scm['update_cmd'] % {'dest': repo_dict['path'], 'rev': target_rev}
+        if not do_dry_run:
+            scm['update'](repo_dict['path'], target_rev)
 
 
 
