@@ -1,7 +1,9 @@
 import os
 import logging
 import sys
+import json
 
+import hglib
 import paver.svn
 from paver.easy import *
 
@@ -47,7 +49,6 @@ def fetch():
     """
     Download data to the correct location.
     """
-    import hglib
 
     for repo_dict in REPOS:
         print 'checking %s' % repo_dict['path']
@@ -61,5 +62,7 @@ def fetch():
             LOGGER.debug('Repository %s exists', repo_dict['path'])
 
         # is repo up-to-date?  If not, update it.
+        target_rev = json.load(open('versions.json'))[repo_dict['path']]
+        scm['update'](repo_dict['path'], target_rev)
 
 
