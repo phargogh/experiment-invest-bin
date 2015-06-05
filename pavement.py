@@ -101,23 +101,61 @@ def env(options):
         print '    source %s/bin/activate' % env_dirname
 
 @task
-def fetch():
+@consume_args  # when consuuming args, it's a list of str arguments.
+def fetch(args):
     """
     Download data to the correct location.
     """
 
+    do_dry_run = '--dry-run' in args
+
+    # determine which groupings the user wants to operate on.
+    # example: `src` would represent all repos under src/
+    # example: `data` would represent all repos under data/
+    # example: `src/pygeoprocessing` would represent the pygeoprocessing repo
+    repos = set([])
+    for argument in args:
+        if not argument.startswith('-'):
+            repos.add(argument)
+
+
+    def _user_requested_repo(local_repo_path):
+        """
+        Check if the user requested this repository.
+        Does so by checking prefixes provided by the user.
+
+        Arguments:
+            local_repo_path (string): the path to the local repository
+                relative to the CWD. (example: src/pygeoprocessing)
+
+        Returns:
+            Boolean: Whether the user did request this repo.
+        """
+        # check that the user wants to update this repo
+        for user_arg_prefix in repos:
+            if local_repo_path.startswith(user_arg_prefix):
+                return True
+        return False
+
     for repo_dict in REPOS:
-        print 'checking %s' % repo_dict['path']
         LOGGER.debug('Checking %s', repo_dict['path'])
+
+        # If the user did not request this repo AND the user didn't want to
+        # update everything (by specifying no positional args), skip this repo.
+        if not _user_requested_repo(repo_dict['path']) and len(repos) > 0:
+            continue
+
         # does repo exist?  If not, clone it.
         scm = SCM_DATA[repo_dict['scm']]
         repo_state_dir = os.path.join(repo_dict['path'], scm['statedir'])
         if not os.path.exists(repo_state_dir):
+            print 'cloning %s' % repo_dict['path']
             scm['clone'](repo_dict['url'], repo_dict['path'])
         else:
             LOGGER.debug('Repository %s exists', repo_dict['path'])
 
         # is repo up-to-date?  If not, update it.
+        print 'Updating %s' % repo_dict['path']
         target_rev = json.load(open('versions.json'))[repo_dict['path']]
         scm['update'](repo_dict['path'], target_rev)
 
