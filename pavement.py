@@ -224,12 +224,22 @@ def fetch(args):
 @task
 @consume_args
 def push(args):
-
+    import paramiko
     from paramiko import SSHClient
     from scp import SCPClient
     ssh = SSHClient()
     ssh.load_system_host_keys()
     ssh.load_host_keys('/Users/jdouglass/.ssh/id_rsa')
+
+
+    # Clean out all of the user-configurable options flags.
+    config_opts = []
+    for argument in args:
+        if argument.startswith('--'):
+            config_opts.append(argument)
+            _ = args.remove(argument)
+
+    use_password = '--password' in config_opts
 
     try:
         destination_config = args[0]
@@ -263,10 +273,21 @@ def push(args):
     hostname = destination_config
 
     # start up the SSH connection
-    password = getpass.getpass()
-    ssh.connect(hostname, username=username, password=password)
-    scp = SCPClient(ssh.get_transport())
+    if use_password:
+        password = getpass.getpass()
+    else:
+        password = None
 
+    try:
+        ssh.connect(hostname, username=username, password=password)
+    except paramiko.BadAuthenticationType:
+        print 'ERROR: incorrect password or bad SSH key.'
+        return
+    except paramiko.PasswordRequiredException:
+        print 'ERROR: password required to decrypt private key on remote.  Use --password flag'
+        return
+
+    scp = SCPClient(ssh.get_transport())
     for transfer_file in files_to_push:
         file_basename = os.path.basename(transfer_file)
         if target_dir is not None:
@@ -274,7 +295,7 @@ def push(args):
         else:
             target_filename = file_basename
 
-        print 'Transferring %s -> remote:%s ' % (transfer_file, target_filename)
+        print 'Transferring %s -> %s:%s ' % (transfer_file, hostname, target_filename)
         scp.put(transfer_file, target_filename)
 
 
