@@ -5,6 +5,7 @@ import json
 import subprocess
 import platform
 import collections
+import getpass
 
 import hglib
 import paver.virtual
@@ -220,5 +221,60 @@ def fetch(args):
                 scm['pull'](repo_dict['path'])
             scm['update'](repo_dict['path'], target_rev)
 
+@task
+@consume_args
+def push(args):
+
+    from paramiko import SSHClient
+    from scp import SCPClient
+    ssh = SSHClient()
+    ssh.load_system_host_keys()
+    ssh.load_host_keys('/Users/jdouglass/.ssh/id_rsa')
+
+    try:
+        destination_config = args[0]
+    except IndexError:
+        print "ERROR: destination config must be provided"
+        return
+
+    files_to_push = args[1:]
+    if len(files_to_push) == 0:
+        print "ERROR: At least one file must be given"
+        return
+
+    # ASSUME WE'RE ONLY DOING ONE HOST PER PUSH
+    # split apart the configuration string.
+    # format:
+    #    [user@]hostname[:directory]
+    if '@' in destination_config:
+        username = destination_config.split('@')[0]
+        destination_config = destination_config.replace(username + '@', '')
+    else:
+        username = getpass.getuser()
+
+    if ':' in destination_config:
+        target_dir = destination_config.split(':')[-1]
+        destination_config = destination_config.replace(':' + target_dir, '')
+    else:
+        # just use the SCP default
+        target_dir = None
+
+    # hostname is whatever remains of the dest config.
+    hostname = destination_config
+
+    # start up the SSH connection
+    password = getpass.getpass()
+    ssh.connect(hostname, username=username, password=password)
+    scp = SCPClient(ssh.get_transport())
+
+    for transfer_file in files_to_push:
+        file_basename = os.path.basename(transfer_file)
+        if target_dir is not None:
+            target_filename = os.path.join(target_dir, file_basename)
+        else:
+            target_filename = file_basename
+
+        print 'Transferring %s -> remote:%s ' % (transfer_file, target_filename)
+        scp.put(transfer_file, target_filename)
 
 
