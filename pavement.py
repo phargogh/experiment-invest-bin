@@ -224,13 +224,14 @@ def fetch(args):
 @task
 @consume_args
 def push(args):
+    """
+
+    """
     import paramiko
     from paramiko import SSHClient
     from scp import SCPClient
     ssh = SSHClient()
     ssh.load_system_host_keys()
-    ssh.load_host_keys('/Users/jdouglass/.ssh/id_rsa')
-
 
     # Clean out all of the user-configurable options flags.
     config_opts = []
