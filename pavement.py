@@ -224,8 +224,21 @@ def fetch(args):
 @task
 @consume_args
 def push(args):
-    """
+    """    Usage:
+        paver push [--password] [user@]hostname[:target_dir] file1, file2, ...
 
+    Push a file or files to a remote server.
+    Uses pythonic paramiko-based SCP to copy files to the remote server.
+
+    If --password is provided at the command line, the user will be prompted
+    for a password.  This is sometimes required when the remote's private key
+    requires a password to decrypt.
+
+    If a target username is not provided ([user@]...), the current user's username
+    used for the transfer.
+
+    If a target directory is not provided (hostname[:target_dir]), the current
+    directory of the target user is used.
     """
     import paramiko
     from paramiko import SSHClient
