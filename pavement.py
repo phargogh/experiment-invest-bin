@@ -86,21 +86,9 @@ SCMS = {
 }
 
 REPOS = [
-    {
-        'path': 'src/pygeoprocessing',
-        'scm': 'hg',
-        'url': 'https://bitbucket.org/richpsharp/pygeoprocessing',
-    },
-    {
-        'path': 'doc/users-guide',
-        'scm': 'hg',
-        'url': 'http://code.google.com/p/invest-natcap.users-guide',
-    },
-    {
-        'path': 'data/invest-data',
-        'scm': 'svn',
-        'url': 'http://ncp-yamato.stanford.edu/svn/sample-repo'
-    },
+    HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
+    HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
+    SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample_repo'),
 ]
 
 @task
@@ -178,7 +166,7 @@ def fetch(args):
     # None is our internal, temp keyword representing the LATEST possible
     # rev.
     user_repo_revs = {}  # repo -> version
-    repo_paths = map(lambda x: x['path'], REPOS)
+    repo_paths = map(lambda x: x.local_path, REPOS)
     args_queue = collections.deque(args[:])
 
     while len(args_queue) > 0:
@@ -237,26 +225,25 @@ def fetch(args):
                 return True
         return False
 
-    for repo_dict in REPOS:
-        LOGGER.debug('Checking %s', repo_dict['path'])
+    for repo in REPOS:
+        LOGGER.debug('Checking %s', repo.local_path)
 
         # If the user did not request this repo AND the user didn't want to
         # update everything (by specifying no positional args), skip this repo.
-        if not _user_requested_repo(repo_dict['path']) and len(repos) > 0:
+        if not _user_requested_repo(repo.local_path) and len(repos) > 0:
             continue
 
         # does repo exist?  If not, clone it.
-        repo = SCMS[repo_dict['scm']](repo_dict['path'], repo_dict['url'])
         if not repo.ischeckedout():
             repo.clone()
         else:
-            LOGGER.debug('Repository %s exists', repo_dict['path'])
+            LOGGER.debug('Repository %s exists', repo.local_path)
 
         # is repo up-to-date?  If not, update it.
         # If this is a dry run, jus print the command.
         # If the user specified a target revision, use that instead.
         try:
-            target_rev = user_repo_revs[repo_dict['path']]
+            target_rev = user_repo_revs[repo.local_path]
             if target_rev is None:
                 raise KeyError
         except KeyError:
@@ -386,12 +373,11 @@ def clean(options):
             pass
 
     # clean out all python package repos in src/
-    for repodir in map(lambda x: x['path'], REPOS):
+    for repodir in map(lambda x: x.local_path, REPOS):
         if repodir.startswith('src'):
-            os.chdir(repodir)
-            print 'cd ' + repodir
-            sh(sys.executable + ' setup.py clean')
-            os.chdir('..')
+            sh(sys.executable + ' setup.py clean', cwd=repodir)
+        elif repodir.startswith('doc'):
+            sh('make clean')
 
 @task
 @cmdopts([
@@ -434,7 +420,6 @@ def build_docs(options):
     """
     guide_dir = os.path.join('doc', 'users-guide')
     latex_dir = os.path.join(guide_dir, 'build', 'latex')
-    sh('make clean', cwd=guide_dir)
     sh('make html', cwd=guide_dir)
     sh('make latex', cwd=guide_dir)
     sh('make all-pdf', cwd=latex_dir)
