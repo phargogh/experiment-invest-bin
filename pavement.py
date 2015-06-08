@@ -105,6 +105,9 @@ REPOS = [
 
 @task
 def version(json, save):
+    """
+    Display the versions of nested repositories and exit.  UNIMPLEMENTED
+    """
     pass
 
 # options are accessed by virtualenv bootstrap command somehow.
@@ -125,6 +128,9 @@ options(
                                      'to the global site-packages')),
 ])
 def env(options):
+    """
+    Set up a virtualenv for the project.
+    """
 
     # Detect whether the user called `paver env` with the system-site-packages
     # flag.  If so, modify the paver options object so that bootstrapping will
@@ -262,10 +268,11 @@ def fetch(args):
 @task
 @consume_args
 def push(args):
-    """    Usage:
+    """Push a file or files to a remote server.
+
+    Usage:
         paver push [--password] [user@]hostname[:target_dir] file1, file2, ...
 
-    Push a file or files to a remote server.
     Uses pythonic paramiko-based SCP to copy files to the remote server.
 
     If --password is provided at the command line, the user will be prompted
@@ -391,6 +398,19 @@ def clean(options):
     ('force-dev', '', 'Zip subrepos even if their version does not match the known state')
 ])
 def zip_source(options):
+    """
+    Create a zip archive of all source repositories for this project.
+
+    Creates a standalone zip file that, when extracted, will contain all source code
+    needed to create documentation and functional binaries from the various projects
+    managed by this project.  If there's a source repo in this repository, its source
+    is in this archive.
+
+    If --force-dev is provided, the state of the contained subrepositories/subprojects
+    is allowed to differ from the revision noted in versions.json.  If the state of
+    the subproject/subrepository does not match the state noted in versions.json and
+    --force-dev is NOT provided, an error will be raised.
+    """
     sh('mkdir -p tmp/source')
     sh('hg archive tmp/invest-bin.zip')
     sh('unzip -o tmp/invest-bin.zip -d tmp/source')
@@ -409,6 +429,9 @@ def zip_source(options):
 
 @task
 def build_docs(options):
+    """
+    Build the sphinx user's guide for InVEST
+    """
     guide_dir = os.path.join('doc', 'users-guide')
     latex_dir = os.path.join(guide_dir, 'build', 'latex')
     sh('make clean', cwd=guide_dir)
