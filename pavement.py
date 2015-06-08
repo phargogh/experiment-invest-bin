@@ -50,6 +50,11 @@ REPOS = [
         'url': 'http://bitbucket.org/richpsharp/pygeoprocessing',
     },
     {
+        'path': 'doc/users-guide',
+        'scm': 'hg',
+        'url': 'http://code.google.com/p/invest-natcap.users-guide',
+    },
+    {
         'path': 'data/invest-data',
         'scm': 'svn',
         'url': 'http://ncp-yamato.stanford.edu/svn/sample-repo'
@@ -359,7 +364,7 @@ def zip_source(options):
     sh('hg archive tmp/invest-bin.zip')
     sh('unzip -o tmp/invest-bin.zip -d tmp/source')
     for dirname in map(lambda x: x['path'], REPOS):
-        if not dirname.startswith('src'):
+        if not dirname[0:4] in ['doc', 'src']:
             continue
         projectname = dirname.replace('src/', '')
         sh('hg archive -R %(repo)s tmp/%(zipname)s.zip' % {
@@ -370,4 +375,10 @@ def zip_source(options):
             'project': projectname})
 
     sh('cd tmp/source && zip -r ../../invest-source.zip invest-bin')
+
+@task
+def build_docs(options):
+    sh('cd doc/users-guide && make clean')
+    sh('cd doc/users-guide && make html')
+    sh('cd doc/users-guide && make latex && cd build/latex && make all-pdf')
 
