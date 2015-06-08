@@ -401,10 +401,29 @@ def zip_source(options):
     sh('cd tmp/source && zip -r ../../invest-source.zip invest-bin')
 
 @task
+@cmdopts([
+    ('force-dev', '', 'Force development')
+])
 def build_docs(options):
     """
     Build the sphinx user's guide for InVEST
     """
+
+    try:
+        options.force_dev
+    except AttributeError:
+        # options.force_dev not specified as a cmd opt, defaulting to False.
+        options.force_dev = False
+
+    ug_repo = REPOS_DICT['users-guide']
+    if not ug_repo.at_known_rev() and options.force_dev is False:
+        current_rev = ug_repo.current_rev()
+        print 'ERROR: Revision mismatch in repo %s' % ug_repo.local_path
+        print '*****  Repository at rev %s' % current_rev
+        print '*****  Expected rev: %s' % ug_repo.tracked_version()
+        print '*****  To override, use the --force-dev flag.'
+        return
+
     guide_dir = os.path.join('doc', 'users-guide')
     latex_dir = os.path.join(guide_dir, 'build', 'latex')
     sh('make html', cwd=guide_dir)
