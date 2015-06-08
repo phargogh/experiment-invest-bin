@@ -2,13 +2,9 @@ import os
 import logging
 import sys
 import json
-import subprocess
-import platform
 import collections
 import getpass
-import shutil
 
-import hglib
 import paver.virtual
 import paver.svn
 import paver.path
