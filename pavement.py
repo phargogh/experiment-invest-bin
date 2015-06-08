@@ -350,3 +350,26 @@ def clean(options):
             sh(sys.executable + ' setup.py clean')
             os.chdir('..')
 
+@task
+@cmdopts([
+    ('force-dev', '', 'Zip subrepos even if their version does not match the known state')
+])
+def zip_source(options):
+
+    sh('mkdir -p tmp/source')
+    sh('hg archive tmp/invest-bin.zip')
+    sh('unzip -o tmp/invest-bin.zip -d tmp/source')
+    for dirname in map(lambda x: x['path'], REPOS):
+        if not dirname.startswith('src'):
+            continue
+        projectname = dirname.replace('src/', '')
+        sh('hg archive -R %(repo)s tmp/%(zipname)s.zip' % {
+            'repo': dirname, 'zipname': projectname})
+
+        sh('unzip -o tmp/%(zipname)s.zip -d tmp/source' % {'zipname': projectname})
+        sh('cp -r tmp/source/%(project)s tmp/source/invest-bin/src/' % {
+            'project': projectname})
+
+    os.chdir('tmp/source')
+    sh('zip -r ../../invest-source.zip invest-bin')
+
