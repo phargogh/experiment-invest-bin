@@ -89,7 +89,7 @@ REPOS = [
     {
         'path': 'src/pygeoprocessing',
         'scm': 'hg',
-        'url': 'http://bitbucket.org/richpsharp/pygeoprocessing',
+        'url': 'https://bitbucket.org/richpsharp/pygeoprocessing',
     },
     {
         'path': 'doc/users-guide',
@@ -409,7 +409,11 @@ def zip_source(options):
 
 @task
 def build_docs(options):
-    sh('cd doc/users-guide && make clean')
-    sh('cd doc/users-guide && make html')
-    sh('cd doc/users-guide && make latex && cd build/latex && make all-pdf')
+    guide_dir = os.path.join('doc', 'users-guide')
+    latex_dir = os.path.join(guide_dir, 'build', 'latex')
+    sh('make clean', cwd=guide_dir)
+    sh('make html', cwd=guide_dir)
+    sh('make latex', cwd=guide_dir)
+    sh('make all-pdf', cwd=latex_dir)
+
 
