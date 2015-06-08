@@ -355,7 +355,6 @@ def clean(options):
     ('force-dev', '', 'Zip subrepos even if their version does not match the known state')
 ])
 def zip_source(options):
-
     sh('mkdir -p tmp/source')
     sh('hg archive tmp/invest-bin.zip')
     sh('unzip -o tmp/invest-bin.zip -d tmp/source')
@@ -370,6 +369,5 @@ def zip_source(options):
         sh('cp -r tmp/source/%(project)s tmp/source/invest-bin/src/' % {
             'project': projectname})
 
-    os.chdir('tmp/source')
-    sh('zip -r ../../invest-source.zip invest-bin')
+    sh('cd tmp/source && zip -r ../../invest-source.zip invest-bin')
 
