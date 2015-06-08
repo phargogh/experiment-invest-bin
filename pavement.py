@@ -43,6 +43,9 @@ class Repository(object):
     def tracked_version(self):
         return json.load(open('versions.json'))[self.local_path]
 
+    def at_known_rev(self):
+        return self.current_rev() == self.tracked_version()
+
     def current_rev(self):
         raise Exception
 
@@ -81,16 +84,12 @@ class SVNRepository(Repository):
     def current_rev(self):
         return paver.svn.info(self.local_path).revision
 
-SCMS = {
-    'hg': HgRepository,
-    'svn': SVNRepository,
+REPOS_DICT = {
+    'users-guide': HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
+    'pygeoprocessing': HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
+    'invest-data': SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample_repo'),
 }
-
-REPOS = [
-    HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
-    HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
-    SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample_repo'),
-]
+REPOS = REPOS_DICT.values()
 
 @task
 def version(json, save):
@@ -411,5 +410,4 @@ def build_docs(options):
     sh('make html', cwd=guide_dir)
     sh('make latex', cwd=guide_dir)
     sh('make all-pdf', cwd=latex_dir)
-
 
