@@ -11,6 +11,7 @@ import shutil
 import hglib
 import paver.virtual
 import paver.svn
+import paver.path
 from paver.easy import *
 
 LOGGER = logging.getLogger('invest-bin')
@@ -353,31 +354,18 @@ def clean(options):
     folders_to_rm = ['build', 'dist', 'tmp', 'bin', options.virtualenv.env_name]
     files_to_rm = [options.virtualenv.script_name]
 
-    if platform.system() == 'Windows':
-        rm_stmt = 'DEL /R %s'
-    else:
-        rm_stmt = 'rm -r %s'
-
     for folder in folders_to_rm:
-        try:
-            print rm_stmt % folder
-            shutil.rmtree(folder)
-        except OSError:
-            pass
+        paver.path.path(folder).rmtree()
 
     for filename in files_to_rm:
-        try:
-            print rm_stmt % filename
-            os.remove(filename)
-        except OSError:
-            pass
+        paver.path.path(folder).remove()
 
     # clean out all python package repos in src/
     for repodir in map(lambda x: x.local_path, REPOS):
         if repodir.startswith('src'):
             sh(sys.executable + ' setup.py clean', cwd=repodir)
         elif repodir.startswith('doc'):
-            sh('make clean')
+            sh('make clean', cwd=repodir)
 
 @task
 @cmdopts([
