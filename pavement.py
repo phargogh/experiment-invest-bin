@@ -19,29 +19,71 @@ _SDTOUT_HANDLER.setLevel(logging.INFO)
 LOGGER.addHandler(_SDTOUT_HANDLER)
 
 
-SCM_DATA = {
-    'hg': {
-        'statedir': '.hg',
-        'clone': lambda s, d: hglib.clone(s, d),
-        'pull': lambda s: hglib.open(s).pull(),
-        'update': lambda d, r: hglib.open(d).update(r),
-        'clone_cmd': 'hg clone %(url)s %(dest)s',
-        'pull_cmd': 'hg pull -R %(dest)s',
-        'update_cmd': 'hg update -R %(dest)s -r %(rev)s',
-        'tip': 'tip',
-    },
-    'svn': {
-        'statedir': '.svn',
-        'clone': lambda s, d: paver.svn.checkout(s, d),
-        'pull': None,  # centralized, so no concept of pull
-        'update': lambda d, r: paver.svn.update(d, r),
-        'clone_cmd': 'svn checkout %(url)s %(dest)s',
-        'pull_cmd': None,
-        'update_cmd': 'cd %(dest)s && svn update -r %(rev)s',
-        'tip': 'HEAD',
-    }
-}
+class Repository(object):
+    tip = ''
+    statedir = ''
 
+    def __init__(self, local_path, remote_url):
+        self.local_path = local_path
+        self.remote_url = remote_url
+
+    def ischeckedout(self):
+        return os.path.exists(os.path.join(self.local_path, self.statedir))
+
+    def clone(self):
+        raise Exception
+
+    def pull(self):
+        raise Exception
+
+    def update(self):
+        raise Exception
+
+    def tracked_version(self):
+        return json.load(open('versions.json'))[self.local_path]
+
+    def current_rev(self):
+        raise Exception
+
+class HgRepository(Repository):
+    tip = 'tip'
+    statedir = '.hg'
+
+    def clone(self):
+        sh('hg clone %(url)s %(dest)s' % {'url': self.remote_url,
+                                          'dest': self.local_path})
+
+    def pull(self):
+        sh('hg pull -R %(dest)s' % {'dest': self.local_path})
+
+    def update(self, rev):
+        sh('hg update -R %(dest)s -r %(rev)s' % {'dest': self.local_path,
+                                               'rev': rev})
+
+    def current_rev(self):
+        return sh('hg log -r . --template={node}', capture=True)
+
+class SVNRepository(Repository):
+    tip = 'HEAD'
+    statedir = '.svn'
+
+    def clone(self):
+        paver.svn.checkout(self.remote_url, self.local_path)
+
+    def pull(self):
+        # svn is centralized, so there's no concept of pull without a checkout.
+        return
+
+    def update(self, rev):
+        paver.svn.update(self.local_path, rev)
+
+    def current_rev(self):
+        return paver.svn.info(self.local_path).revision
+
+SCMS = {
+    'hg': HgRepository,
+    'svn': SVNRepository,
+}
 
 REPOS = [
     {
@@ -123,10 +165,8 @@ def env(options):
 @consume_args  # when consuuming args, it's a list of str arguments.
 def fetch(args):
     """
-    Download data to the correct location.
+    Clone repositories the correct locations.
     """
-
-    do_dry_run = '--dry-run' in args
 
     # figure out which repos/revs we're hoping to update.
     # None is our internal, temp keyword representing the LATEST possible
@@ -200,13 +240,9 @@ def fetch(args):
             continue
 
         # does repo exist?  If not, clone it.
-        scm = SCM_DATA[repo_dict['scm']]
-        repo_state_dir = os.path.join(repo_dict['path'], scm['statedir'])
-        if not os.path.exists(repo_state_dir):
-            print scm['clone_cmd'] % {'url': repo_dict['url'],
-                                      'dest': repo_dict['path']}
-            if not do_dry_run:
-                scm['clone'](repo_dict['url'], repo_dict['path'])
+        repo = SCMS[repo_dict['scm']](repo_dict['path'], repo_dict['url'])
+        if not repo.ischeckedout():
+            repo.clone()
         else:
             LOGGER.debug('Repository %s exists', repo_dict['path'])
 
@@ -218,15 +254,10 @@ def fetch(args):
             if target_rev is None:
                 raise KeyError
         except KeyError:
-            target_rev = json.load(open('versions.json'))[repo_dict['path']]
+            target_rev = repo.tracked_version()
 
-        if scm['pull_cmd'] is not None:
-            print scm['pull_cmd'] % {'dest': repo_dict['path']}
-        print scm['update_cmd'] % {'dest': repo_dict['path'], 'rev': target_rev}
-        if not do_dry_run:
-            if scm['pull'] is not None:
-                scm['pull'](repo_dict['path'])
-            scm['update'](repo_dict['path'], target_rev)
+        repo.pull()
+        repo.update(target_rev)
 
 @task
 @consume_args
