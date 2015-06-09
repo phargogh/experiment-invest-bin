@@ -475,3 +475,19 @@ def check():
     if errors_found:
         return 1
 
+@task
+@cmdopts([
+    ('force-dev', '', 'force dev')
+])
+def build_data(options):
+    data_repo = REPOS_DICT['invest-data']
+    if not _repo_is_valid(data_repo, options):
+        return
+
+    for data_dirname in os.listdir(data_repo.local_path):
+        if not os.path.isdir(os.path.join(data_repo.local_path, data_dirname)):
+            continue
+        if data_dirname == data_repo.statedir:
+            continue
+        sh('zip -r %s.zip %s' % (data_dirname, data_dirname), cwd=data_repo.local_path)
+
