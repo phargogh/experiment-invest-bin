@@ -86,7 +86,7 @@ SCMS = {
 REPOS = [
     HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
     HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
-    SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample_repo'),
+    SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample-repo'),
 ]
 
 @task
