@@ -512,7 +512,7 @@ def check():
 
     # verify required programs exist
     errors_found = False
-    for program in ['hg', 'git']:
+    for program in ['hg', 'git', 'zip', 'unzip', 'make', 'cp']:
         # Inspired by this SO post: http://stackoverflow.com/a/855764/299084
 
         fpath, fname = os.path.split(program)
@@ -535,6 +535,8 @@ def check():
 
     if errors_found:
         return 1
+    else:
+        print "All's well."
 
 @task
 @cmdopts([
