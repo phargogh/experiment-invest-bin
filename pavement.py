@@ -560,7 +560,7 @@ def check():
 
     # verify required programs exist
     errors_found = False
-    for program in ['hg', 'git', 'zip', 'make']:
+    for program in ['hg', 'git', 'make']:
         # Inspired by this SO post: http://stackoverflow.com/a/855764/299084
 
         fpath, fname = os.path.split(program)
