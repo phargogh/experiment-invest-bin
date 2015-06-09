@@ -477,17 +477,22 @@ def check():
 
 @task
 @cmdopts([
-    ('force-dev', '', 'force dev')
+    ('force-dev', '', 'Zip data folders even if repo version does not match the known state')
 ])
 def build_data(options):
     data_repo = REPOS_DICT['invest-data']
     if not _repo_is_valid(data_repo, options):
         return
 
+    dist_dir = 'dist'
+    if not os.path.exists(dist_dir):
+        os.makedirs(dist_dir)
+
     for data_dirname in os.listdir(data_repo.local_path):
+        out_zipfile = os.path.abspath(os.path.join(dist_dir, data_dirname + ".zip"))
         if not os.path.isdir(os.path.join(data_repo.local_path, data_dirname)):
             continue
         if data_dirname == data_repo.statedir:
             continue
-        sh('zip -r %s.zip %s' % (data_dirname, data_dirname), cwd=data_repo.local_path)
+        sh('zip -r %s %s' % (out_zipfile, data_dirname), cwd=data_repo.local_path)
 
