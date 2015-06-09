@@ -532,6 +532,8 @@ def zip_source(options):
 def build_docs(options):
     """
     Build the sphinx user's guide for InVEST
+
+    Requires make.
     """
 
     if not _repo_is_valid(REPOS_DICT['users-guide'], options):
