@@ -109,11 +109,18 @@ def _repo_is_valid(repo, options):
     return True
 
 @task
-def version(json, save):
+@cmdopts([
+    ('json', '', 'save to json'),
+    ('save', '', 'Write json to a file')
+])
+def version(options):
     """
     Display the versions of nested repositories and exit.  UNIMPLEMENTED
     """
-    pass
+
+    data = dict((repo.local_path, repo.current_rev()) for repo in REPOS)
+
+    print json.dumps(data, indent=4)
 
 # options are accessed by virtualenv bootstrap command somehow.
 options(
