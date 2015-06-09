@@ -88,6 +88,25 @@ REPOS_DICT = {
 }
 REPOS = REPOS_DICT.values()
 
+def _repo_is_valid(repo, options):
+    # repo is a repository object
+    # options is the Options object passed in when using the @cmdopts
+    # decorator.
+    try:
+        options.force_dev
+    except AttributeError:
+        # options.force_dev not specified as a cmd opt, defaulting to False.
+        options.force_dev = False
+
+    if not repo.at_known_rev() and options.force_dev is False:
+        current_rev = repo.current_rev()
+        print 'ERROR: Revision mismatch in repo %s' % repo.local_path
+        print '*****  Repository at rev %s' % current_rev
+        print '*****  Expected rev: %s' % repo.tracked_version()
+        print '*****  To override, use the --force-dev flag.'
+        return False
+    return True
+
 @task
 def version(json, save):
     """
@@ -406,19 +425,7 @@ def build_docs(options):
     Build the sphinx user's guide for InVEST
     """
 
-    try:
-        options.force_dev
-    except AttributeError:
-        # options.force_dev not specified as a cmd opt, defaulting to False.
-        options.force_dev = False
-
-    ug_repo = REPOS_DICT['users-guide']
-    if not ug_repo.at_known_rev() and options.force_dev is False:
-        current_rev = ug_repo.current_rev()
-        print 'ERROR: Revision mismatch in repo %s' % ug_repo.local_path
-        print '*****  Repository at rev %s' % current_rev
-        print '*****  Expected rev: %s' % ug_repo.tracked_version()
-        print '*****  To override, use the --force-dev flag.'
+    if not _repo_is_valid(REPOS_DICT['users-guide'], options):
         return
 
     guide_dir = os.path.join('doc', 'users-guide')
