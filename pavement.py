@@ -409,4 +409,44 @@ def build_docs(options):
     sh('make latex', cwd=guide_dir)
     sh('make all-pdf', cwd=latex_dir)
 
+@task
+def check():
+    """
+    Perform reasonable checks to verify the build environment.
+
+
+    This paver task checks that the following is true:
+        Executables are available: hg, git
+
+
+    """
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    class FoundEXE(Exception): pass
+
+    # verify required programs exist
+    errors_found = False
+    for program in ['hg', 'git']:
+        # Inspired by this SO post: http://stackoverflow.com/a/855764/299084
+
+        fpath, fname = os.path.split(program)
+        if fpath:
+            if not is_exe(program):
+                print "ERROR: executable not found: %s" % program
+                errors_found = True
+        else:
+            try:
+                for path in os.environ["PATH"].split(os.pathsep):
+                    path = path.strip('"')
+                    exe_file = os.path.join(path, program)
+                    if is_exe(exe_file):
+                        raise FoundEXE
+            except FoundEXE:
+                continue
+            else:
+                print "ERROR: executable %s not found on the PATH" % fname
+                errors_found = True
+
+    if errors_found:
+        return 1
 
