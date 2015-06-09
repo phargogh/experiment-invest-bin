@@ -5,6 +5,9 @@ import json
 import platform
 import collections
 import getpass
+import shutil
+import warnings
+import zipfile
 
 import paver.virtual
 import paver.svn
@@ -83,7 +86,15 @@ class SVNRepository(Repository):
         paver.svn.update(self.local_path, rev)
 
     def current_rev(self):
-        return paver.svn.info(self.local_path).revision
+        try:
+            return paver.svn.info(self.local_path).revision
+        except AttributeError:
+            # happens when we're in a dry run
+            # In this case, paver.svn.info() returns an empty Bunch object.
+            # Returning 'Unknown' for now until we implement something more
+            # stable.
+            warnings.warn('SVN version info does not work when in a dry run')
+            return 'Unknown'
 
 REPOS_DICT = {
     'users-guide': HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
@@ -461,21 +472,58 @@ def zip_source(options):
     the subproject/subrepository does not match the state noted in versions.json and
     --force-dev is NOT provided, an error will be raised.
     """
-    sh('mkdir -p tmp/source')
-    sh('hg archive tmp/invest-bin.zip')
-    sh('unzip -o tmp/invest-bin.zip -d tmp/source')
-    for dirname in map(lambda x: x['path'], REPOS):
-        if not dirname[0:4] in ['doc', 'src']:
+    source_dir = os.path.join('tmp', 'source')
+    invest_bin_zip = os.path.join('tmp', 'invest-bin.zip')
+    invest_dir = os.path.join('tmp', 'source', 'invest-bin')
+    dist_dir = 'dist'
+    try:
+        dry('mkdir -p %s' % dist_dir, os.makedirs, source_dir)
+    except OSError:
+        # Folder already exists.  Skipping.
+        pass
+    sh('hg archive %s' % invest_bin_zip)
+
+    def _unzip(zip_uri, dest_dir):
+        def _unzip_func():
+            zip = zipfile.ZipFile(zip_uri)
+            zip.extractall(dest_dir)
+        dry('unzip -o %s -d %s' % (zip_uri, dest_dir), _unzip_func)
+
+    _unzip(invest_bin_zip, source_dir)
+
+    for dirname in map(lambda x: x.local_path, REPOS):
+        if not dirname[0:3] in ['doc', 'src']:
             continue
-        projectname = dirname.replace('src/', '')
+
+        if dirname.startswith('src'):
+            source_dir = os.path.join(invest_dir, 'src')
+        elif dirname.startswith('doc'):
+            source_dir = os.path.join(invest_dir, 'doc')
+
+        projectname = dirname[4:]  # remove the / as well.
+        unzipped_dir = os.path.join(source_dir, projectname)
+        print unzipped_dir
+        try:
+            dry('rm -r %s' % unzipped_dir, shutil.rmtree, unzipped_dir)
+        except OSError:
+            # when the source dir doesn't exist, that's ok.
+            pass
+
         sh('hg archive -R %(repo)s tmp/%(zipname)s.zip' % {
             'repo': dirname, 'zipname': projectname})
 
-        sh('unzip -o tmp/%(zipname)s.zip -d tmp/source' % {'zipname': projectname})
-        sh('cp -r tmp/source/%(project)s tmp/source/invest-bin/src/' % {
-            'project': projectname})
+        zipfile_name = projectname + '.zip'
+        _unzip(os.path.join('tmp', zipfile_name), source_dir)
 
-    sh('cd tmp/source && zip -r ../../invest-source.zip invest-bin')
+        extracted_dir = os.path.join(source_dir, projectname)
+
+    dry('zip -r %s %s' % ('invest-bin', 'tmp/source'),
+        shutil.make_archive, **{
+            'base_name': os.path.abspath(os.path.join('dist', 'invest-bin')),
+            'format': 'zip',
+            'root_dir': source_dir,
+            'base_dir': '.'})
+
 
 @task
 @cmdopts([
@@ -512,7 +560,7 @@ def check():
 
     # verify required programs exist
     errors_found = False
-    for program in ['hg', 'git', 'zip', 'unzip', 'make', 'cp']:
+    for program in ['hg', 'git', 'zip', 'make']:
         # Inspired by this SO post: http://stackoverflow.com/a/855764/299084
 
         fpath, fname = os.path.split(program)
@@ -549,7 +597,7 @@ def build_data(options):
 
     dist_dir = 'dist'
     if not os.path.exists(dist_dir):
-        os.makedirs(dist_dir)
+        dry('mkdir %s' % dist_dir, os.makedirs, dist_dir)
 
     for data_dirname in os.listdir(data_repo.local_path):
         out_zipfile = os.path.abspath(os.path.join(dist_dir, data_dirname + ".zip"))
@@ -557,5 +605,11 @@ def build_data(options):
             continue
         if data_dirname == data_repo.statedir:
             continue
-        sh('zip -r %s %s' % (out_zipfile, data_dirname), cwd=data_repo.local_path)
+
+        dry('zip -r %s %s' % (out_zipfile, data_dirname),
+            shutil.make_archive, **{
+                'base_name': data_dirname,
+                'format': 'zip',
+                'root_dir': data_repo.local_path,
+                'base_dir': '.'})
 
