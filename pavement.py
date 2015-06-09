@@ -62,7 +62,8 @@ class HgRepository(Repository):
                                                'rev': rev})
 
     def current_rev(self):
-        return sh('hg log -r . --template={node}', capture=True)
+        return sh('hg log -R %(dest)s -r . --template={node}' % {
+            'dest': self.local_path}, capture=True)
 
 class SVNRepository(Repository):
     tip = 'HEAD'
