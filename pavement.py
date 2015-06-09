@@ -151,7 +151,8 @@ def version(options):
     # the known version.
     # Columns:
     # local_path | repo_type | rev_matches
-    fmt_string = "%(path)-20s %(type)-10s %(is_tracked)-10s"
+    repo_col_width= max(map(lambda x: len(x.local_path), REPOS)) + 4
+    fmt_string = "%(path)-" + str(repo_col_width) + "s %(type)-10s %(is_tracked)-10s"
     data = []
     for repo in sorted(REPOS, key=lambda x: x.local_path):
         data.append({
@@ -160,7 +161,16 @@ def version(options):
             "is_tracked": repo.at_known_rev(),
         })
 
-    headers = {"path": 'Repo path', "type": 'Repo type', "is_tracked": 'Rev is tracked'}
+    this_repo_rev = sh('hg log -r . --template="{node}"', capture=True)
+    this_repo_branch = sh('hg branch', capture=True)
+    print
+    print '*** THIS REPO ***'
+    print 'Rev:    %s' % this_repo_rev
+    print 'Branch: %s' % this_repo_branch
+
+    print
+    print '*** SUBREPOS ***'
+    headers = {"path": 'REPO PATH', "type": 'REPO TYPE', "is_tracked": 'REV IS TRACKED'}
     print fmt_string % headers
     for repo_data in data:
         print fmt_string % repo_data
