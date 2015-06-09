@@ -531,7 +531,11 @@ def zip_source(options):
 ])
 def build_docs(options):
     """
-    Build the sphinx user's guide for InVEST
+    Build the sphinx user's guide for InVEST.
+
+    Builds the sphinx user's guide in HTML, latex and PDF formats.
+    Compilation of the guides uses sphinx and requires that all needed
+    libraries are installed for compiling html, latex and pdf.
 
     Requires make.
     """
@@ -593,6 +597,20 @@ def check():
     ('force-dev', '', 'Zip data folders even if repo version does not match the known state')
 ])
 def build_data(options):
+    """
+    Build data zipfiles for sample data.
+
+    Expects that sample data zipfiles are provided in the invest-data repo.
+    Data files should be stored in one directory per model, where the directory
+    name matches the model name.  This creates one zipfile per folder, where
+    the zipfile name matches the folder name.
+
+    options:
+        --force-dev : Provide this option if you know that the invest-data version
+                      does not match the version tracked in versions.json.  If the
+                      versions do not match and the flag is not provided, the task
+                      will print an error and quit.
+    """
     data_repo = REPOS_DICT['invest-data']
     if not _repo_is_valid(data_repo, options):
         return
