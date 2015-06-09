@@ -20,6 +20,7 @@ LOGGER.addHandler(_SDTOUT_HANDLER)
 class Repository(object):
     tip = ''
     statedir = ''
+    cmd = ''
 
     def __init__(self, local_path, remote_url):
         self.local_path = local_path
@@ -49,6 +50,7 @@ class Repository(object):
 class HgRepository(Repository):
     tip = 'tip'
     statedir = '.hg'
+    cmd = 'hg'
 
     def clone(self):
         sh('hg clone %(url)s %(dest)s' % {'url': self.remote_url,
@@ -68,6 +70,7 @@ class HgRepository(Repository):
 class SVNRepository(Repository):
     tip = 'HEAD'
     statedir = '.svn'
+    cmd = 'svn'
 
     def clone(self):
         paver.svn.checkout(self.remote_url, self.local_path)
@@ -145,9 +148,26 @@ def version(options):
     except AttributeError:
         pass
 
+    # print a formatted table of repository versions and whether the repo is at
+    # the known version.
+    # Columns:
+    # local_path | repo_type | rev_matches
+
+    fmt_string = "%(path)-20s %(type)-10s %(is_tracked)-10s"
 
 
+    data = []
+    for repo in sorted(REPOS, key=lambda x: x.local_path):
+        data.append({
+            "path": repo.local_path,
+            "type": repo.cmd,
+            "is_tracked": repo.at_known_rev(),
+        })
 
+    headers = {"path": 'Repo path', "type": 'Repo type', "is_tracked": 'Rev is tracked'}
+    print fmt_string % headers
+    for repo_data in data:
+        print fmt_string % repo_data
 
 # options are accessed by virtualenv bootstrap command somehow.
 options(
