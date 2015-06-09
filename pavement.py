@@ -110,17 +110,44 @@ def _repo_is_valid(repo, options):
 
 @task
 @cmdopts([
-    ('json', '', 'save to json'),
-    ('save', '', 'Write json to a file')
+    ('json', '', 'Export to json'),
+    ('save', '', 'Write json to versions.json')
 ])
 def version(options):
     """
     Display the versions of nested repositories and exit.  UNIMPLEMENTED
     """
 
+
     data = dict((repo.local_path, repo.current_rev()) for repo in REPOS)
 
-    print json.dumps(data, indent=4)
+    # If --json and --save are both specified, raise an error.
+    # These options should be mutually exclusive.
+    try:
+        if options.json and options.save:
+            print "ERROR: --json and --save are mutually exclusive"
+            return
+    except AttributeError:
+        pass
+
+    json_string = json.dumps(data, sort_keys=True, indent=4)
+    try:
+        options.json
+        print json_string
+        return
+    except AttributeError:
+        pass
+
+    try:
+        options.save
+        open('versions.json', 'w').write(json_string)
+        return
+    except AttributeError:
+        pass
+
+
+
+
 
 # options are accessed by virtualenv bootstrap command somehow.
 options(
