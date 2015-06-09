@@ -122,8 +122,6 @@ def version(options):
     """
 
 
-    data = dict((repo.local_path, repo.current_rev()) for repo in REPOS)
-
     # If --json and --save are both specified, raise an error.
     # These options should be mutually exclusive.
     try:
@@ -133,6 +131,7 @@ def version(options):
     except AttributeError:
         pass
 
+    data = dict((repo.local_path, repo.current_rev()) for repo in REPOS)
     json_string = json.dumps(data, sort_keys=True, indent=4)
     try:
         options.json
@@ -152,10 +151,7 @@ def version(options):
     # the known version.
     # Columns:
     # local_path | repo_type | rev_matches
-
     fmt_string = "%(path)-20s %(type)-10s %(is_tracked)-10s"
-
-
     data = []
     for repo in sorted(REPOS, key=lambda x: x.local_path):
         data.append({
