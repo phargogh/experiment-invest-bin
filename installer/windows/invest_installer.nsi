@@ -290,15 +290,15 @@ Section "InVEST Tools and ArcGIS toolbox" Section_InVEST_Tools
   ; Actually install the information we want to disk.
   SetOutPath "$INSTDIR"
   File license.txt
-  File ..\invest-natcap\*.tbx
-  File ..\invest-natcap\docs\release_notes\*.txt
-  File /nonfatal ..\invest-natcap.users-guide\build\latex\${PDF_NAME}
+  File ..\..\src\invest-natcap.default\*.tbx
+  File ..\..\src\invest-natcap.default\docs\release_notes\*.txt
+  File /nonfatal ..\..\doc\users-guide\build\latex\${PDF_NAME}
 
   SetOutPath "$INSTDIR\invest_helper_utils\"
-  File /r /x *.hg* /x *.svn* ..\invest-natcap\utils\*
+  File /r /x *.hg* /x *.svn* ..\..\src\invest-natcap.default\utils\*
 
   SetOutPath "$INSTDIR\python\"
-  File /r /x *.hg* /x *.svn* ..\invest-natcap\python\*
+  File /r /x *.hg* /x *.svn* ..\..\src\invest-natcap.default\python\*
 
   SetOutPath "$INSTDIR\${INVEST_3_FOLDER}\"
   File /r /x *.hg* /x *.svn* ..\${INVEST_3_FOLDER}\*
@@ -307,7 +307,7 @@ Section "InVEST Tools and ArcGIS toolbox" Section_InVEST_Tools
 ;  File /r /x *.hg* /x *.svn* ..\${INVEST_3_FOLDER_x64}\*
 
   SetOutPath "$INSTDIR\documentation"
-  File /r /x *.hg* /x *.svn* ..\invest-natcap.users-guide\build\html\*
+  File /r /x *.hg* /x *.svn* ..\..\doc\users-guide\build\html\*
 
   ; If the user has provided a custom data zipfile, unzip the data.
   ${If} $LocalDataZipFile != ""
