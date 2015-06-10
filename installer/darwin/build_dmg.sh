@@ -1,23 +1,20 @@
 #!/bin/bash
 #
-# Script taken from http://stackoverflow.com/a/1513578/299084
-
-title=InVEST
-applicationName=pygeoprocessing
-finalDMGName=InVEST
-
-if [ "`ls *.dmg`" != "" ]
-then
-    echo "dmg file(s) exist: `ls *.dmg | xargs`."
-    echo "Remove them before continuing"
-    exit 1
-fi
-
+# Arguments:
+#  $1 = the version string to use 
+#  $2 = the path to the binary dir to package.
+#
+# Script adapted from http://stackoverflow.com/a/1513578/299084
 # TODO: unmount any existing disk images with the same name.
+
+title="InVEST ${1}"
+finalDMGName="InVEST ${1}"
+
+rm *.dmg
 
 # prepare a local temp dir for a filesystem
 mkdir temp
-cp -r ../../src/pygeoprocessing temp
+cp -r $2 temp
 source=temp
 
 size=40000  # ~40 MB
@@ -33,6 +30,8 @@ ls -la /Volumes
 mkdir /Volumes/"${title}"/.background
 cp background.png /Volumes/"${title}"/.background/background.png
 backgroundPictureName='background.png'
+
+applicationName="`basename ${2}`"
 
 echo '
    tell application "Finder"

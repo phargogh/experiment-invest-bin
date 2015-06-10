@@ -657,7 +657,8 @@ def build_data(options):
 
 @task
 def build_installer():
-    _build_nsis(1, 2, 3)
+    #_build_nsis(1, 2, 3)
+    _build_dmg(1, 'src/pygeoprocessing')
 
 def _build_nsis(version, bindir, arch):
     # determine makensis path
@@ -677,6 +678,7 @@ def _build_nsis(version, bindir, arch):
     sh (makensis)
 
 def _build_dmg(version, bindir):
-    pass
+    bindir = os.path.abspath(bindir)
+    sh('./build_dmg.sh %s %s' % (version, bindir), cwd='installer/darwin')
 
 
