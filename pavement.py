@@ -336,14 +336,17 @@ def fetch(args):
             LOGGER.debug('Repository %s exists', repo.local_path)
 
         # is repo up-to-date?  If not, update it.
-        # If this is a dry run, jus print the command.
         # If the user specified a target revision, use that instead.
         try:
             target_rev = user_repo_revs[repo.local_path]
             if target_rev is None:
                 raise KeyError
         except KeyError:
-            target_rev = repo.tracked_version()
+            try:
+                target_rev = repo.tracked_version()
+            except KeyError:
+                print 'ERROR: repo not tracked in versions.json: %s' % repo.local_path
+                return 1
 
         repo.pull()
         repo.update(target_rev)
