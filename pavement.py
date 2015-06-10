@@ -8,6 +8,7 @@ import getpass
 import shutil
 import warnings
 import zipfile
+import glob
 
 import paver.virtual
 import paver.svn
@@ -463,13 +464,15 @@ def clean(options):
             paver.path.path(globbed_dir).rmtree()
 
     for filename in files_to_rm:
-        for globbed_file in glob.glob(filename)
+        for globbed_file in glob.glob(filename):
             paver.path.path(globbed_file).remove()
 
     # clean out all python package repos in src/
     for repodir in map(lambda x: x.local_path, REPOS):
         if repodir.startswith('src'):
-            sh(sys.executable + ' setup.py clean', cwd=repodir)
+            if os.path.exists(os.path.join(repodir, 'setup.py')):
+                # use setup.py for package directories.
+                sh(sys.executable + ' setup.py clean', cwd=repodir)
         elif repodir.startswith('doc'):
             sh('make clean', cwd=repodir)
 
