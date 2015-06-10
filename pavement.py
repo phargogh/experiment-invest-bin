@@ -634,3 +634,26 @@ def build_data(options):
                 'root_dir': data_repo.local_path,
                 'base_dir': '.'})
 
+@task
+def build_bin():
+    _build_nsis(1, 2, 3)
+
+def _build_nsis(version, bindir, arch):
+    # determine makensis path
+    makensis = 'C:\Program Files\NSIS\makensis.exe'
+    if platform.system() != 'Windows':
+        makensis = 'wine "%s"' % makensis
+
+    nsis_params = [
+        '/DVERSION=%s' % version,
+        '/DVERSION_DISK=%s'% version,
+        '/DINVEST_3_FOLDER=%s' % bindir,
+        '/DSHORT_VERSION=%s' % version,  # some other value?
+        '/DARCHITECTURE=%s' % arch,
+        'installer/windows/invest_installer.nsi'
+    ]
+    makensis += ' ' + ' '.join(nsis_params)
+
+    sh (makensis)
+
+
