@@ -451,13 +451,19 @@ def clean(options):
 
     folders_to_rm = ['build', 'dist', 'tmp', 'bin', 'test',
                      options.virtualenv.env_name]
-    files_to_rm = [options.virtualenv.script_name]
+    files_to_rm = [
+        options.virtualenv.script_name,
+        'installer/darwin/pack.temp.dmg',
+        'installer/darwin/*.dmg'
+    ]
 
     for folder in folders_to_rm:
-        paver.path.path(folder).rmtree()
+        for globbed_dir in glob.glob(folder):
+            paver.path.path(globbed_dir).rmtree()
 
     for filename in files_to_rm:
-        paver.path.path(folder).remove()
+        for globbed_file in glob.glob(filename)
+            paver.path.path(globbed_file).remove()
 
     # clean out all python package repos in src/
     for repodir in map(lambda x: x.local_path, REPOS):
@@ -646,7 +652,7 @@ def build_data(options):
                 'base_dir': '.'})
 
 @task
-def build_bin():
+def build_installer():
     _build_nsis(1, 2, 3)
 
 def _build_nsis(version, bindir, arch):
@@ -664,7 +670,9 @@ def _build_nsis(version, bindir, arch):
         'installer/windows/invest_installer.nsi'
     ]
     makensis += ' ' + ' '.join(nsis_params)
-
     sh (makensis)
+
+def _build_dmg(version, bindir):
+    pass
 
 
