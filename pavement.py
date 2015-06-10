@@ -10,7 +10,6 @@ import warnings
 import zipfile
 import glob
 
-import paver.virtual
 import paver.svn
 import paver.path
 from paver.easy import *
@@ -198,13 +197,8 @@ def version(options):
 # options are accessed by virtualenv bootstrap command somehow.
 options(
     virtualenv = Bunch(
-        env_name = 'test_env',
-        script_name = "bootstrap.py",
-        packages_to_install = [
-            "numpy",
-            "scipy",
-            "pygeoprocessing==0.2.2",
-            "psycopg2"]
+        dest_dir = 'test_env',
+        script_name = "bootstrap.py"
     )
 )
 @task
@@ -226,14 +220,37 @@ def env(options):
         use_site_pkgs = False
     options.virtualenv.system_site_packages = use_site_pkgs
 
-    # Uses the options.virtualenv settings we set in the Option() call above
-    # and with whatever other settings are modified before this call.
-    paver.virtual.bootstrap()
+    # paver provides paver.virtual.bootstrap(), but this does not afford the
+    # degree of control that we want and need with installing needed packages.
+    # We therefore make our own bootstrapping function call here.
+    import virtualenv, textwrap
+    requirements = [
+        "numpy",
+        "scipy",
+        "/Users/jdouglass/workspace/pygeoprocessing",
+        "psycopg2",
+    ]
+
+    install_string = """
+import os, subprocess
+def after_install(options, home_dir):
+    etc = join(home_dir, 'etc')
+    if not os.path.exists(etc):
+        os.makedirs(etc)
+
+    """
+
+    pip_template = "    subprocess.call([join(home_dir, 'bin', 'pip'), 'install', '%s'])\n"
+    for pkgname in requirements:
+        install_string += pip_template % pkgname
+
+    output = virtualenv.create_bootstrap_script(textwrap.dedent(install_string))
+    f = open(options.virtualenv.script_name, 'w').write(output)
 
     # Built the bootstrap env via a subprocess call.
     # Calling via the shell so that virtualenv has access to environment
     # vars as needed.
-    env_dirname = options.virtualenv.env_name
+    env_dirname = options.virtualenv.dest_dir
     bootstrap_cmd = "%(python)s %(bootstrap_file)s %(env_name)s"
     bootstrap_opts = {
         "python": sys.executable,
@@ -680,5 +697,3 @@ def _build_nsis(version, bindir, arch):
 def _build_dmg(version, bindir):
     bindir = os.path.abspath(bindir)
     sh('./build_dmg.sh %s %s' % (version, bindir), cwd='installer/darwin')
-
-
