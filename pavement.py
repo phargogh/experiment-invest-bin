@@ -695,12 +695,13 @@ def build_installer(options):
         'Linux': 'deb'
     }
 
+    # set default options if they have not been set by the user.
+    # options don't exist in the options object unless the user defines it.
     defaults = [
         ('bindir', 'dist/invest-bin'),
         ('insttype', default_installer[platform.system()]),
         ('arch', platform.machine())
     ]
-
     for option_name, default_val in defaults:
         try:
             getattr(options, option_name)
