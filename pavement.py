@@ -679,17 +679,38 @@ def build_bin():
     pass
 
 @task
-@consume_args
-def build_installer(args):
-    if len(args) > 1:
-        print 'ERROR: can only provide one installer to build per call.'
-        return 1
+#@consume_args
+@cmdopts([
+    ('bindir=', 'b', ('Folder of binaries to include in the installer. '
+                      'Defaults to dist/invest-bin')),
+    ('insttype=', 'i', ('The type of installer to build. '
+                        'Defaults depend on the current system: '
+                        'Windows=nsis, Mac=dmg, Linux=deb')),
+    ('arch=', 'a', 'The architecture of the binaries'),
+])
+def build_installer(options):
+    default_installer = {
+        'Darwin': 'dmg',
+        'Windows': 'nsis',
+        'Linux': 'deb'
+    }
+
+    defaults = [
+        ('bindir', 'dist/invest-bin'),
+        ('insttype', default_installer[platform.system()]),
+        ('arch', platform.machine())
+    ]
+
+    for option_name, default_val in defaults:
+        try:
+            getattr(options, option_name)
+        except AttributeError:
+            setattr(options, option_name, default_val)
 
     # version comes from the installed version of natcap.invest
-    version = natcap.invest.__version__
-    command = args[0].lower()
-
+    version = "1.2.3"  # get this from natcap.invest
     bindir = 'dist/invest-bin'
+    command = options.insttype
 
     if command == 'nsis':
         _build_nsis(version, bindir, 'x86')
