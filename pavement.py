@@ -679,12 +679,25 @@ def build_bin():
     pass
 
 @task
-def build_installer():
+@consume_args
+def build_installer(args):
+    if len(args) > 1:
+        print 'ERROR: can only provide one installer to build per call.'
+        return 1
+
     # version comes from the installed version of natcap.invest
     version = natcap.invest.__version__
+    command = args[0].lower()
 
-    #_build_nsis(1, 2, 3)
-    _build_dmg(version, 'src/pygeoprocessing')
+    bindir = 'dist/invest-bin'
+
+    if command == 'nsis':
+        _build_nsis(version, bindir, 'x86')
+    elif command == 'dmg':
+        _build_dmg(version, bindir)
+    else:
+        print 'ERROR: command not recognized: %s' % command
+        return 1
 
 def _build_nsis(version, bindir, arch):
     # determine makensis path
