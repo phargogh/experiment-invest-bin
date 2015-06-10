@@ -674,9 +674,17 @@ def build_data(options):
                 'base_dir': '.'})
 
 @task
+def build_bin():
+    # make some call here to pyinstaller.
+    pass
+
+@task
 def build_installer():
+    # version comes from the installed version of natcap.invest
+    version = natcap.invest.__version__
+
     #_build_nsis(1, 2, 3)
-    _build_dmg(1, 'src/pygeoprocessing')
+    _build_dmg(version, 'src/pygeoprocessing')
 
 def _build_nsis(version, bindir, arch):
     # determine makensis path
