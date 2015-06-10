@@ -9,10 +9,12 @@ import shutil
 import warnings
 import zipfile
 import glob
+import textwrap
 
 import paver.svn
 import paver.path
 from paver.easy import *
+import virtualenv
 
 LOGGER = logging.getLogger('invest-bin')
 _SDTOUT_HANDLER = logging.StreamHandler(sys.stdout)
@@ -222,8 +224,7 @@ def env(options):
 
     # paver provides paver.virtual.bootstrap(), but this does not afford the
     # degree of control that we want and need with installing needed packages.
-    # We therefore make our own bootstrapping function call here.
-    import virtualenv, textwrap
+    # We therefore make our own bootstrapping function calls here.
     requirements = [
         "numpy",
         "scipy",
