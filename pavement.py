@@ -450,10 +450,11 @@ def clean(options):
     """
 
     folders_to_rm = ['build', 'dist', 'tmp', 'bin', 'test',
-                     options.virtualenv.env_name]
+                     options.virtualenv.env_name,
+                     'installer/darwin/temp',
+                     ]
     files_to_rm = [
         options.virtualenv.script_name,
-        'installer/darwin/pack.temp.dmg',
         'installer/darwin/*.dmg'
     ]
 
