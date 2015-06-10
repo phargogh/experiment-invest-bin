@@ -100,6 +100,7 @@ REPOS_DICT = {
     'users-guide': HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
     'pygeoprocessing': HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
     'invest-data': SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample_repo'),
+    'invest-2': HgRepository('src/invest-natcap.default', 'http://code.google.com/p/invest-natcap'),
 }
 REPOS = REPOS_DICT.values()
 
@@ -166,10 +167,17 @@ def version(options):
     fmt_string = "%(path)-" + str(repo_col_width) + "s %(type)-10s %(is_tracked)-10s"
     data = []
     for repo in sorted(REPOS, key=lambda x: x.local_path):
+        try:
+            at_known_rev = repo.at_known_rev()
+            if at_known_rev is False:
+                at_known_rev = 'MODIFIED'
+        except KeyError:
+            at_known_rev = 'UNTRACKED'
+
         data.append({
             "path": repo.local_path,
             "type": repo.cmd,
-            "is_tracked": repo.at_known_rev(),
+            "is_tracked": at_known_rev,
         })
 
     this_repo_rev = sh('hg log -r . --template="{node}"', capture=True)
@@ -181,7 +189,7 @@ def version(options):
 
     print
     print '*** SUBREPOS ***'
-    headers = {"path": 'REPO PATH', "type": 'REPO TYPE', "is_tracked": 'REV IS TRACKED'}
+    headers = {"path": 'REPO PATH', "type": 'REPO TYPE', "is_tracked": 'AT TRACKED REV'}
     print fmt_string % headers
     for repo_data in data:
         print fmt_string % repo_data
