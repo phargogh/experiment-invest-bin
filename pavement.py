@@ -565,7 +565,7 @@ def zip_source(options):
         shutil.make_archive, **{
             'base_name': os.path.abspath(os.path.join('dist', 'invest-bin')),
             'format': 'zip',
-            'root_dir': source_dir,
+            'root_dir': 'tmp/source',
             'base_dir': '.'})
 
 
