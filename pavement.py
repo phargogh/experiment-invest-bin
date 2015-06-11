@@ -169,12 +169,15 @@ def version(options):
     fmt_string = "%(path)-" + str(repo_col_width) + "s %(type)-10s %(is_tracked)-10s"
     data = []
     for repo in sorted(REPOS, key=lambda x: x.local_path):
-        try:
-            at_known_rev = repo.at_known_rev()
-            if at_known_rev is False:
-                at_known_rev = 'MODIFIED'
-        except KeyError:
-            at_known_rev = 'UNTRACKED'
+        if not os.path.exists(repo.local_path):
+            at_known_rev = 'NOT CLONED'
+        else:
+            try:
+                at_known_rev = repo.at_known_rev()
+                if at_known_rev is False:
+                    at_known_rev = 'MODIFIED'
+            except KeyError:
+                at_known_rev = 'UNTRACKED'
 
         data.append({
             "path": repo.local_path,
