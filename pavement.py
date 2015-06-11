@@ -145,7 +145,8 @@ def version(options):
     except AttributeError:
         pass
 
-    data = dict((repo.local_path, repo.current_rev()) for repo in REPOS)
+    data = dict((repo.local_path, repo.current_rev() if os.path.exists(
+        repo.local_path) else None) for repo in REPOS)
     json_string = json.dumps(data, sort_keys=True, indent=4)
     try:
         options.json
@@ -170,7 +171,7 @@ def version(options):
     data = []
     for repo in sorted(REPOS, key=lambda x: x.local_path):
         if not os.path.exists(repo.local_path):
-            at_known_rev = 'NOT CLONED'
+            at_known_rev = 'not cloned'
         else:
             try:
                 at_known_rev = repo.at_known_rev()
