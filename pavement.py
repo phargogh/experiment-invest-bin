@@ -101,7 +101,7 @@ class SVNRepository(Repository):
 REPOS_DICT = {
     'users-guide': HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
     'pygeoprocessing': HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
-    'invest-data': SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample_repo'),
+    'invest-data': SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample-repo'),
     'invest-2': HgRepository('src/invest-natcap.default', 'http://code.google.com/p/invest-natcap'),
 }
 REPOS = REPOS_DICT.values()
