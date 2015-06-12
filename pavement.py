@@ -68,9 +68,13 @@ class HgRepository(Repository):
         sh('hg update -R %(dest)s -r %(rev)s' % {'dest': self.local_path,
                                                'rev': rev})
 
+    def _format_log(self, template='', rev='.'):
+        return sh('hg log -R %(dest)s -r %(rev)s --template="%(template)s"' % {
+            'dest': self.local_path, 'rev': rev, 'template': template},
+            capture=True)
+
     def current_rev(self):
-        return sh('hg log -R %(dest)s -r . --template={node}' % {
-            'dest': self.local_path}, capture=True)
+        return _format_log('{node}')
 
 class SVNRepository(Repository):
     tip = 'HEAD'
