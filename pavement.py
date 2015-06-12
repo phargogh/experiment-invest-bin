@@ -193,8 +193,10 @@ def version(options):
 
     this_repo_rev = sh('hg log -r . --template="{node}"', capture=True)
     this_repo_branch = sh('hg branch', capture=True)
+    local_version = _get_local_version()
     print
     print '*** THIS REPO ***'
+    print 'Pretty: %s' % local_version
     print 'Rev:    %s' % this_repo_rev
     print 'Branch: %s' % this_repo_branch
 
@@ -525,32 +527,7 @@ def zip_source(options):
     The version used is compiled from the state of the repository.
     """
 
-    # determine the version string.
-    # If this is an archive, build the version string from info in
-    # .hg_archival.
-    if os.path.exists('.hg_archival.txt'):
-        repo_data = yaml.load_safe(open('.hg_archival.txt'))
-    elif os.path.exists('.hg'):
-        # we're in an hg repo, so we can just get the information.
-        repo = HgRepository('.', '')
-        repo_data = {
-            'latesttag': repo._format_log('{latesttag}'),
-            'latesttagdistance': int(repo._format_log('{latesttagdistance}')),
-            'branch': repo._format_log('{branch}'),
-            'short_node': repo._format_log('{shortest(node, 6)}'),
-        }
-    else:
-        print 'ERROR: Not an hg repo, not an hg archive, cannot determine version.'
-        return
-
-    # null from loading tag from hg, None from yaml
-    if repo_data['latesttag'] in ['null', None]:
-        repo_data['latesttag'] = '0.0'
-
-    if repo_data['latesttagdistance'] == 0:
-        version = repo_data['latesttag']
-    else:
-        version = "%(latesttag)s.dev%(latesttagdistance)s-%(short_node)s" % repo_data
+    version = _get_local_version()
 
     source_dir = os.path.join('tmp', 'source')
     invest_bin_zip = os.path.join('tmp', 'invest-bin.zip')
@@ -782,3 +759,33 @@ def _build_nsis(version, bindir, arch):
 def _build_dmg(version, bindir):
     bindir = os.path.abspath(bindir)
     sh('./build_dmg.sh %s %s' % (version, bindir), cwd='installer/darwin')
+
+
+def _get_local_version():
+    # determine the version string.
+    # If this is an archive, build the version string from info in
+    # .hg_archival.
+    if os.path.exists('.hg_archival.txt'):
+        repo_data = yaml.load_safe(open('.hg_archival.txt'))
+    elif os.path.exists('.hg'):
+        # we're in an hg repo, so we can just get the information.
+        repo = HgRepository('.', '')
+        repo_data = {
+            'latesttag': repo._format_log('{latesttag}'),
+            'latesttagdistance': int(repo._format_log('{latesttagdistance}')),
+            'branch': repo._format_log('{branch}'),
+            'short_node': repo._format_log('{shortest(node, 6)}'),
+        }
+    else:
+        print 'ERROR: Not an hg repo, not an hg archive, cannot determine version.'
+        return
+
+    # null from loading tag from hg, None from yaml
+    if repo_data['latesttag'] in ['null', None]:
+        repo_data['latesttag'] = '0.0'
+
+    if repo_data['latesttagdistance'] == 0:
+        version = repo_data['latesttag']
+    else:
+        version = "%(latesttag)s.dev%(latesttagdistance)s-%(short_node)s" % repo_data
+    return version
