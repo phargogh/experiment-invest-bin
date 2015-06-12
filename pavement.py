@@ -53,6 +53,7 @@ class Repository(object):
     def current_rev(self):
         raise Exception
 
+
 class HgRepository(Repository):
     tip = 'tip'
     statedir = '.hg'
@@ -67,7 +68,7 @@ class HgRepository(Repository):
 
     def update(self, rev):
         sh('hg update -R %(dest)s -r %(rev)s' % {'dest': self.local_path,
-                                               'rev': rev})
+                                                 'rev': rev})
 
     def _format_log(self, template='', rev='.'):
         return sh('hg log -R %(dest)s -r %(rev)s --template="%(template)s"' % {
@@ -76,6 +77,7 @@ class HgRepository(Repository):
 
     def current_rev(self):
         return self._format_log('{node}')
+
 
 class SVNRepository(Repository):
     tip = 'HEAD'
@@ -111,6 +113,7 @@ REPOS_DICT = {
 }
 REPOS = REPOS_DICT.values()
 
+
 def _repo_is_valid(repo, options):
     # repo is a repository object
     # options is the Options object passed in when using the @cmdopts
@@ -130,6 +133,7 @@ def _repo_is_valid(repo, options):
         return False
     return True
 
+
 @task
 @cmdopts([
     ('json', '', 'Export to json'),
@@ -139,8 +143,6 @@ def version(options):
     """
     Display the versions of nested repositories and exit.  UNIMPLEMENTED
     """
-
-
     # If --json and --save are both specified, raise an error.
     # These options should be mutually exclusive.
     try:
@@ -171,7 +173,7 @@ def version(options):
     # the known version.
     # Columns:
     # local_path | repo_type | rev_matches
-    repo_col_width= max(map(lambda x: len(x.local_path), REPOS)) + 4
+    repo_col_width = max(map(lambda x: len(x.local_path), REPOS)) + 4
     fmt_string = "%(path)-" + str(repo_col_width) + "s %(type)-10s %(is_tracked)-10s"
     data = []
     for repo in sorted(REPOS, key=lambda x: x.local_path):
@@ -209,15 +211,17 @@ def version(options):
 
 # options are accessed by virtualenv bootstrap command somehow.
 options(
-    virtualenv = Bunch(
-        dest_dir = 'test_env',
-        script_name = "bootstrap.py"
+    virtualenv=Bunch(
+        dest_dir='test_env',
+        script_name="bootstrap.py"
     )
 )
+
+
 @task
 @cmdopts([
     ('system-site-packages', '', ('Give the virtual environment access '
-                                     'to the global site-packages')),
+                                  'to the global site-packages')),
 ])
 def env(options):
     """
@@ -257,7 +261,7 @@ def after_install(options, home_dir):
         install_string += pip_template % pkgname
 
     output = virtualenv.create_bootstrap_script(textwrap.dedent(install_string))
-    f = open(options.virtualenv.script_name, 'w').write(output)
+    open(options.virtualenv.script_name, 'w').write(output)
 
     # Built the bootstrap env via a subprocess call.
     # Calling via the shell so that virtualenv has access to environment
@@ -280,6 +284,7 @@ def after_install(options, home_dir):
         print r'    call .\%s\Scripts\activate' % env_dirname
     else:  # assume all POSIX systems behave the same way
         print '    source %s/bin/activate' % env_dirname
+
 
 @task
 @consume_args  # when consuuming args, it's a list of str arguments.
@@ -332,7 +337,6 @@ def fetch(args):
         if not argument.startswith('-'):
             repos.add(argument)
 
-
     def _user_requested_repo(local_repo_path):
         """
         Check if the user requested this repository.
@@ -380,6 +384,7 @@ def fetch(args):
 
         repo.pull()
         repo.update(target_rev)
+
 
 @task
 @consume_args
@@ -473,6 +478,7 @@ def push(args):
         print 'Transferring %s -> %s:%s ' % (transfer_file, hostname, target_filename)
         scp.put(transfer_file, target_filename)
 
+
 @task
 def clean(options):
     """
@@ -504,6 +510,7 @@ def clean(options):
                 sh(sys.executable + ' setup.py clean', cwd=repodir)
         elif repodir.startswith('doc'):
             sh('make clean', cwd=repodir)
+
 
 @task
 @cmdopts([
@@ -607,6 +614,7 @@ def build_docs(options):
     sh('make latex', cwd=guide_dir)
     sh('make all-pdf', cwd=latex_dir)
 
+
 @task
 def check():
     """
@@ -620,7 +628,9 @@ def check():
     """
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-    class FoundEXE(Exception): pass
+
+    class FoundEXE(Exception):
+        pass
 
     # verify required programs exist
     errors_found = False
@@ -649,6 +659,7 @@ def check():
         return 1
     else:
         print "All's well."
+
 
 @task
 @cmdopts([
@@ -691,13 +702,14 @@ def build_data(options):
                 'root_dir': data_repo.local_path,
                 'base_dir': '.'})
 
+
 @task
 def build_bin():
     # make some call here to pyinstaller.
     pass
 
+
 @task
-#@consume_args
 @cmdopts([
     ('bindir=', 'b', ('Folder of binaries to include in the installer. '
                       'Defaults to dist/invest-bin')),
@@ -739,6 +751,7 @@ def build_installer(options):
         print 'ERROR: command not recognized: %s' % command
         return 1
 
+
 def _build_nsis(version, bindir, arch):
     # determine makensis path
     makensis = 'C:\Program Files\NSIS\makensis.exe'
@@ -747,14 +760,15 @@ def _build_nsis(version, bindir, arch):
 
     nsis_params = [
         '/DVERSION=%s' % version,
-        '/DVERSION_DISK=%s'% version,
+        '/DVERSION_DISK=%s' % version,
         '/DINVEST_3_FOLDER=%s' % bindir,
         '/DSHORT_VERSION=%s' % version,  # some other value?
         '/DARCHITECTURE=%s' % arch,
         'installer/windows/invest_installer.nsi'
     ]
     makensis += ' ' + ' '.join(nsis_params)
-    sh (makensis)
+    sh(makensis)
+
 
 def _build_dmg(version, bindir):
     bindir = os.path.abspath(bindir)
