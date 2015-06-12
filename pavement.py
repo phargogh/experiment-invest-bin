@@ -747,10 +747,46 @@ def build_installer(options):
         _build_nsis(version, bindir, 'x86')
     elif command == 'dmg':
         _build_dmg(version, bindir)
+    elif command == 'deb':
+        _build_fpm(version, bindir, 'deb')
+    elif command == 'rpm':
+        _build_fpm(version, bindir, 'rpm')
     else:
         print 'ERROR: command not recognized: %s' % command
         return 1
 
+
+def _build_fpm(version, bindir, pkg_type):
+    print "WARNING:  Building linux packages is not yet fully supported"
+    print "WARNING:  The package will build but won't yet install properly"
+    print
+
+    options = {
+        'pkg_type': pkg_type,
+        'version': version,
+        'bindir': bindir
+    }
+
+    fpm_command = (
+        'fpm -s dir -t %(pkg_type)s'
+        ' -n invest'    # deb packages don't do well with uppercase
+        ' -v %(version)s'
+        ' -p dist'
+        ' -m jdouglass@stanford.edu'
+        ' --url naturalcapitalproject.org'
+        ' --vendor "Natural Capital Project"'
+        ' --license "Modified BSD"'
+        ' --description "InVEST (Integrated Valuation of Ecosystem Services '
+            'and Tradeoffs) is a family of tools for quantifying the values '
+            'of natural capital in clear, credible, and practical ways. In '
+            'promising a return (of societal benefits) on investments in '
+            'nature, the scientific community needs to deliver knowledge and '
+            'tools to quantify and forecast this return. InVEST enables '
+            'decision-makers to quantify the importance of natural capital, '
+            'to assess the tradeoffs associated with alternative choices, and '
+            'to integrate conservation and human development."'
+        ' %(bindir)s') % options
+    sh(fpm_command)
 
 def _build_nsis(version, bindir, arch):
     # determine makensis path
