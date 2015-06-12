@@ -75,7 +75,7 @@ class HgRepository(Repository):
             capture=True)
 
     def current_rev(self):
-        return _format_log('{node}')
+        return self._format_log('{node}')
 
 class SVNRepository(Repository):
     tip = 'HEAD'
