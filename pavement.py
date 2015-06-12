@@ -239,7 +239,7 @@ def env(options):
     requirements = [
         "numpy",
         "scipy",
-        "/Users/jdouglass/workspace/pygeoprocessing",
+        "pygeoprocessing==0.2.2",
         "psycopg2",
     ]
 
