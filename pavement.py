@@ -10,6 +10,7 @@ import warnings
 import zipfile
 import glob
 import textwrap
+import yaml
 
 import paver.svn
 import paver.path
@@ -504,7 +505,7 @@ def clean(options):
 
 @task
 @cmdopts([
-    ('force-dev', '', 'Zip subrepos even if their version does not match the known state')
+    ('force-dev', '', 'Zip subrepos even if their version does not match the known state'),
 ])
 def zip_source(options):
     """
@@ -519,7 +520,38 @@ def zip_source(options):
     is allowed to differ from the revision noted in versions.json.  If the state of
     the subproject/subrepository does not match the state noted in versions.json and
     --force-dev is NOT provided, an error will be raised.
+
+    The output file is written to dist/InVEST-source-{version}.zip
+    The version used is compiled from the state of the repository.
     """
+
+    # determine the version string.
+    # If this is an archive, build the version string from info in
+    # .hg_archival.
+    if os.path.exists('.hg_archival.txt'):
+        repo_data = yaml.load_safe(open('.hg_archival.txt'))
+    elif os.path.exists('.hg'):
+        # we're in an hg repo, so we can just get the information.
+        repo = HgRepository('.', '')
+        repo_data = {
+            'latesttag': repo._format_log('{latesttag}'),
+            'latesttagdistance': int(repo._format_log('{latesttagdistance}')),
+            'branch': repo._format_log('{branch}'),
+            'short_node': repo._format_log('{shortest(node, 6)}'),
+        }
+    else:
+        print 'ERROR: Not an hg repo, not an hg archive, cannot determine version.'
+        return
+
+    # null from loading tag from hg, None from yaml
+    if repo_data['latesttag'] in ['null', None]:
+        repo_data['latesttag'] = '0.0'
+
+    if repo_data['latesttagdistance'] == 0:
+        version = repo_data['latesttag']
+    else:
+        version = "%(latesttag)s.dev%(latesttagdistance)s-%(short_node)s" % repo_data
+
     source_dir = os.path.join('tmp', 'source')
     invest_bin_zip = os.path.join('tmp', 'invest-bin.zip')
     invest_dir = os.path.join('tmp', 'source', 'invest-bin')
@@ -563,11 +595,12 @@ def zip_source(options):
         zipfile_name = projectname + '.zip'
         _unzip(os.path.join('tmp', zipfile_name), source_dir)
 
-        extracted_dir = os.path.join(source_dir, projectname)
-
-    dry('zip -r %s %s' % ('invest-bin', 'tmp/source'),
+    # leave off the .zip filename here.  shutil.make_archive adds it based on
+    # the format of the archive.
+    archive_name = os.path.abspath(os.path.join('dist', 'InVEST-source-%s' % version))
+    dry('zip -r %s %s.zip' % ('invest-bin', archive_name),
         shutil.make_archive, **{
-            'base_name': os.path.abspath(os.path.join('dist', 'invest-bin')),
+            'base_name': archive_name,
             'format': 'zip',
             'root_dir': source_dir,
             'base_dir': '.'})
