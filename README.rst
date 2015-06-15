@@ -15,8 +15,8 @@ alternative choices, and to integrate conservation and human development.
 Older versions of InVEST ran as script tools in the ArcGIS ArcToolBox environment,
 but have almost all been ported over to a purely open-source python environment.
 
-Developing InVEST
-=================
+InVEST Dependencies
+===================
 InVEST relies on the following python packages:
 * GDAL
 * shapely
@@ -52,6 +52,20 @@ on the command-line somewhere on your PATH:
 For building InVEST binaries, you will also need to have a compiler configured.
 On linux, gcc/g++ will be sufficient.  On Windows, MinGW and MSVC work.  On Mac,
 you'll likely need the XCode command-line tools to be installed.
+
+
+Developing InVEST
+=================
+
+Fork and pull request, please!
+
+Also, please be sure to work on a feature branch branched from develop.
+Feature branches should be named `feature/your_feature_name`.
+
+Also, be sure to add a note about your change to the HISTORY file before
+submitting your PR.
+
+Thanks for contributing!
 
 
 Releasing InVEST
