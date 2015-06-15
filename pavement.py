@@ -680,6 +680,7 @@ def build_data(options):
 @task
 def build_bin():
     # make some call here to pyinstaller.
+    sh('pip freeze > package_versions.txt')
     pass
 
 @task
