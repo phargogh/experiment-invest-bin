@@ -63,12 +63,17 @@ do
     then
         pkg_python_file=$basedirname/$name/$name.py
         pkg_init_file=$basedirname/$name/__init__.py
-        if [ ! -e "$pkg_python_file" ]
+        if [ "grep \\[\'execute\'\\] $pkg_init_file" != "" ]
         then
-            echo "$pkg_python_file does not exist.  Manually expose the entry point for this package"
+            echo "Entry point already exposed in $pkg_init_file"
         else
-            echo "from $name import execute" >> $pkg_init_file
-            echo "__all__ = ['execute']" >> $pkg_init_file
+            if [ ! -e "$pkg_python_file" ]
+            then
+                echo "$pkg_python_file does not exist.  Manually expose the entry point for this package"
+            else
+                echo "from $name import execute" >> $pkg_init_file
+                echo "__all__ = ['execute']" >> $pkg_init_file
+            fi
         fi
     fi
 done
