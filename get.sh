@@ -4,8 +4,8 @@
 #
 
 
-invest_dir=../invest-natcap.invest-3
-invest_pkgdir=$invest_dir/invest_natcap
+invest_repo_dir=../invest-natcap.invest-3
+invest_pkgdir=$invest_repo_dir/invest_natcap
 natcap_dir=src/natcap
 invest_dir=$natcap_dir/invest
 for pkg_dir in `ls $invest_pkgdir`
@@ -43,7 +43,7 @@ done
 # python setup.py build_sphinx and have the sphinx docs built, but I suppose
 # they might be useful to someone.
 echo "Copying docs"
-cp -r $invest_dir/doc .
+cp -r $invest_repo_dir/doc .
 rm -r doc/build
 
 # find/replace invest_natcap with natcap.invest
