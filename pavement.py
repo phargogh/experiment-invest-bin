@@ -788,6 +788,7 @@ def _build_fpm(version, bindir, pkg_type):
             'decision-makers to quantify the importance of natural capital, '
             'to assess the tradeoffs associated with alternative choices, and '
             'to integrate conservation and human development."'
+        '--after-install ./installer/linux/postinstall.sh'
         ' %(bindir)s') % options
     sh(fpm_command)
 
