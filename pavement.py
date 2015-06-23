@@ -772,13 +772,13 @@ def _build_fpm(version, bindir, pkg_type):
         'fpm -s dir -t %(pkg_type)s'
         ' -n invest'    # deb packages don't do well with uppercase
         ' -v %(version)s'
-        ' -C dist'  # cd here before searching.
-        ' -p /usr/lib/invest-bin'  # install prefix
+        ' -p dist/'
+        ' --prefix /usr/lib/'
         ' -m jdouglass@stanford.edu'
         ' --url naturalcapitalproject.org'
         ' --vendor "Natural Capital Project"'
         ' --license "Modified BSD"'
-        ' --provides "InVEST"'
+        ' --provides "invest"'
         ' --description "InVEST (Integrated Valuation of Ecosystem Services '
             'and Tradeoffs) is a family of tools for quantifying the values '
             'of natural capital in clear, credible, and practical ways. In '
