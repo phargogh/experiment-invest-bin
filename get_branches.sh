@@ -2,7 +2,7 @@ invest3repo=../../invest-natcap.invest-3
 
 for branchname in `hg heads --template="{branch}\n" -R $invest3repo`
 do
-    hg up -r default -R .
+    hg up -C -r default -R .
     if [ "$branchname" = "default" ] || [ "$branchname" = "master" ] || [ "`echo $branchname | grep -o feature/`" = "feature/" ]
     then
         target_branch=$branchname
