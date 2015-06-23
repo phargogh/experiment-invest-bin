@@ -10,6 +10,7 @@ import warnings
 import zipfile
 import glob
 import textwrap
+import yaml
 
 import paver.svn
 import paver.path
@@ -52,6 +53,7 @@ class Repository(object):
     def current_rev(self):
         raise Exception
 
+
 class HgRepository(Repository):
     tip = 'tip'
     statedir = '.hg'
@@ -66,11 +68,16 @@ class HgRepository(Repository):
 
     def update(self, rev):
         sh('hg update -R %(dest)s -r %(rev)s' % {'dest': self.local_path,
-                                               'rev': rev})
+                                                 'rev': rev})
+
+    def _format_log(self, template='', rev='.'):
+        return sh('hg log -R %(dest)s -r %(rev)s --template="%(template)s"' % {
+            'dest': self.local_path, 'rev': rev, 'template': template},
+            capture=True)
 
     def current_rev(self):
-        return sh('hg log -R %(dest)s -r . --template={node}' % {
-            'dest': self.local_path}, capture=True)
+        return self._format_log('{node}')
+
 
 class SVNRepository(Repository):
     tip = 'HEAD'
@@ -98,13 +105,32 @@ class SVNRepository(Repository):
             warnings.warn('SVN version info does not work when in a dry run')
             return 'Unknown'
 
+class GitRepository(Repository):
+    tip = 'master'
+    statedir = '.git'
+    cmd = 'git'
+
+    def clone(self):
+        sh('git checkout %(url)s %(dest)s' % {'url': self.remote_path,
+                                              'dest': self.local_path})
+
+    def pull(self):
+        sh('git fetch', cwd=self.local_path)
+
+    def update(self, rev):
+        sh('git checkout %(rev)s .' % {'rev', rev}, cwd=self.local_path)
+
+    def current_rev(self):
+        return sh('git rev-parse --verify HEAD', cwd=self.local_path, capture=True)
+
 REPOS_DICT = {
     'users-guide': HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
     'pygeoprocessing': HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
-    'invest-data': SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample-repo'),
+    'invest-data': SVNRepository('data/invest-data', 'http://ncp-yamato.stanford.edu/svn/sample_repo'),
     'invest-2': HgRepository('src/invest-natcap.default', 'http://code.google.com/p/invest-natcap'),
 }
 REPOS = REPOS_DICT.values()
+
 
 def _repo_is_valid(repo, options):
     # repo is a repository object
@@ -125,6 +151,7 @@ def _repo_is_valid(repo, options):
         return False
     return True
 
+
 @task
 @cmdopts([
     ('json', '', 'Export to json'),
@@ -134,8 +161,6 @@ def version(options):
     """
     Display the versions of nested repositories and exit.  UNIMPLEMENTED
     """
-
-
     # If --json and --save are both specified, raise an error.
     # These options should be mutually exclusive.
     try:
@@ -166,7 +191,7 @@ def version(options):
     # the known version.
     # Columns:
     # local_path | repo_type | rev_matches
-    repo_col_width= max(map(lambda x: len(x.local_path), REPOS)) + 4
+    repo_col_width = max(map(lambda x: len(x.local_path), REPOS)) + 4
     fmt_string = "%(path)-" + str(repo_col_width) + "s %(type)-10s %(is_tracked)-10s"
     data = []
     for repo in sorted(REPOS, key=lambda x: x.local_path):
@@ -188,8 +213,10 @@ def version(options):
 
     this_repo_rev = sh('hg log -r . --template="{node}"', capture=True)
     this_repo_branch = sh('hg branch', capture=True)
+    local_version = _get_local_version()
     print
     print '*** THIS REPO ***'
+    print 'Pretty: %s' % local_version
     print 'Rev:    %s' % this_repo_rev
     print 'Branch: %s' % this_repo_branch
 
@@ -202,15 +229,17 @@ def version(options):
 
 # options are accessed by virtualenv bootstrap command somehow.
 options(
-    virtualenv = Bunch(
-        dest_dir = 'test_env',
-        script_name = "bootstrap.py"
+    virtualenv=Bunch(
+        dest_dir='test_env',
+        script_name="bootstrap.py"
     )
 )
+
+
 @task
 @cmdopts([
     ('system-site-packages', '', ('Give the virtual environment access '
-                                     'to the global site-packages')),
+                                  'to the global site-packages')),
 ])
 def env(options):
     """
@@ -232,7 +261,7 @@ def env(options):
     requirements = [
         "numpy",
         "scipy",
-        "/Users/jdouglass/workspace/pygeoprocessing",
+        "pygeoprocessing==0.2.2",
         "psycopg2",
     ]
 
@@ -250,7 +279,7 @@ def after_install(options, home_dir):
         install_string += pip_template % pkgname
 
     output = virtualenv.create_bootstrap_script(textwrap.dedent(install_string))
-    f = open(options.virtualenv.script_name, 'w').write(output)
+    open(options.virtualenv.script_name, 'w').write(output)
 
     # Built the bootstrap env via a subprocess call.
     # Calling via the shell so that virtualenv has access to environment
@@ -273,6 +302,7 @@ def after_install(options, home_dir):
         print r'    call .\%s\Scripts\activate' % env_dirname
     else:  # assume all POSIX systems behave the same way
         print '    source %s/bin/activate' % env_dirname
+
 
 @task
 @consume_args  # when consuuming args, it's a list of str arguments.
@@ -325,7 +355,6 @@ def fetch(args):
         if not argument.startswith('-'):
             repos.add(argument)
 
-
     def _user_requested_repo(local_repo_path):
         """
         Check if the user requested this repository.
@@ -373,6 +402,7 @@ def fetch(args):
 
         repo.pull()
         repo.update(target_rev)
+
 
 @task
 @consume_args
@@ -466,6 +496,7 @@ def push(args):
         print 'Transferring %s -> %s:%s ' % (transfer_file, hostname, target_filename)
         scp.put(transfer_file, target_filename)
 
+
 @task
 def clean(options):
     """
@@ -498,9 +529,10 @@ def clean(options):
         elif repodir.startswith('doc'):
             sh('make clean', cwd=repodir)
 
+
 @task
 @cmdopts([
-    ('force-dev', '', 'Zip subrepos even if their version does not match the known state')
+    ('force-dev', '', 'Zip subrepos even if their version does not match the known state'),
 ])
 def zip_source(options):
     """
@@ -515,7 +547,13 @@ def zip_source(options):
     is allowed to differ from the revision noted in versions.json.  If the state of
     the subproject/subrepository does not match the state noted in versions.json and
     --force-dev is NOT provided, an error will be raised.
+
+    The output file is written to dist/InVEST-source-{version}.zip
+    The version used is compiled from the state of the repository.
     """
+
+    version = _get_local_version()
+
     source_dir = os.path.join('tmp', 'source')
     invest_bin_zip = os.path.join('tmp', 'invest-bin.zip')
     invest_dir = os.path.join('tmp', 'source', 'invest-bin')
@@ -559,13 +597,14 @@ def zip_source(options):
         zipfile_name = projectname + '.zip'
         _unzip(os.path.join('tmp', zipfile_name), source_dir)
 
-        extracted_dir = os.path.join(source_dir, projectname)
-
-    dry('zip -r %s %s' % ('invest-bin', 'tmp/source'),
+    # leave off the .zip filename here.  shutil.make_archive adds it based on
+    # the format of the archive.
+    archive_name = os.path.abspath(os.path.join('dist', 'InVEST-source-%s' % version))
+    dry('zip -r %s %s.zip' % ('invest-bin', archive_name),
         shutil.make_archive, **{
-            'base_name': os.path.abspath(os.path.join('dist', 'invest-bin')),
+            'base_name': archive_name,
             'format': 'zip',
-            'root_dir': 'tmp/source',
+            'root_dir': source_dir,
             'base_dir': '.'})
 
 
@@ -593,6 +632,7 @@ def build_docs(options):
     sh('make latex', cwd=guide_dir)
     sh('make all-pdf', cwd=latex_dir)
 
+
 @task
 def check():
     """
@@ -606,7 +646,9 @@ def check():
     """
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-    class FoundEXE(Exception): pass
+
+    class FoundEXE(Exception):
+        pass
 
     # verify required programs exist
     errors_found = False
@@ -635,6 +677,7 @@ def check():
         return 1
     else:
         print "All's well."
+
 
 @task
 @cmdopts([
@@ -677,14 +720,15 @@ def build_data(options):
                 'root_dir': data_repo.local_path,
                 'base_dir': '.'})
 
+
 @task
 def build_bin():
     # make some call here to pyinstaller.
     sh('pip freeze > package_versions.txt')
     pass
 
+
 @task
-#@consume_args
 @cmdopts([
     ('bindir=', 'b', ('Folder of binaries to include in the installer. '
                       'Defaults to dist/invest-bin')),
@@ -722,9 +766,49 @@ def build_installer(options):
         _build_nsis(version, bindir, 'x86')
     elif command == 'dmg':
         _build_dmg(version, bindir)
+    elif command == 'deb':
+        _build_fpm(version, bindir, 'deb')
+    elif command == 'rpm':
+        _build_fpm(version, bindir, 'rpm')
     else:
         print 'ERROR: command not recognized: %s' % command
         return 1
+
+
+def _build_fpm(version, bindir, pkg_type):
+    print "WARNING:  Building linux packages is not yet fully supported"
+    print "WARNING:  The package will build but won't yet install properly"
+    print
+
+    options = {
+        'pkg_type': pkg_type,
+        'version': version,
+        'bindir': bindir
+    }
+
+    fpm_command = (
+        'fpm -s dir -t %(pkg_type)s'
+        ' -n invest'    # deb packages don't do well with uppercase
+        ' -v %(version)s'
+        ' -p dist/'
+        ' --prefix /usr/lib/'
+        ' -m James Douglass <jdouglass@stanford.edu>'
+        ' --url http://naturalcapitalproject.org'
+        ' --vendor "Natural Capital Project"'
+        ' --license "Modified BSD"'
+        ' --provides "invest"'
+        ' --description "InVEST (Integrated Valuation of Ecosystem Services '
+            'and Tradeoffs) is a family of tools for quantifying the values '
+            'of natural capital in clear, credible, and practical ways. In '
+            'promising a return (of societal benefits) on investments in '
+            'nature, the scientific community needs to deliver knowledge and '
+            'tools to quantify and forecast this return. InVEST enables '
+            'decision-makers to quantify the importance of natural capital, '
+            'to assess the tradeoffs associated with alternative choices, and '
+            'to integrate conservation and human development."'
+        '--after-install ./installer/linux/postinstall.sh'
+        ' %(bindir)s') % options
+    sh(fpm_command)
 
 def _build_nsis(version, bindir, arch):
     # determine makensis path
@@ -734,15 +818,46 @@ def _build_nsis(version, bindir, arch):
 
     nsis_params = [
         '/DVERSION=%s' % version,
-        '/DVERSION_DISK=%s'% version,
+        '/DVERSION_DISK=%s' % version,
         '/DINVEST_3_FOLDER=%s' % bindir,
         '/DSHORT_VERSION=%s' % version,  # some other value?
         '/DARCHITECTURE=%s' % arch,
         'installer/windows/invest_installer.nsi'
     ]
     makensis += ' ' + ' '.join(nsis_params)
-    sh (makensis)
+    sh(makensis)
+
 
 def _build_dmg(version, bindir):
     bindir = os.path.abspath(bindir)
     sh('./build_dmg.sh %s %s' % (version, bindir), cwd='installer/darwin')
+
+
+def _get_local_version():
+    # determine the version string.
+    # If this is an archive, build the version string from info in
+    # .hg_archival.
+    if os.path.exists('.hg_archival.txt'):
+        repo_data = yaml.load_safe(open('.hg_archival.txt'))
+    elif os.path.exists('.hg'):
+        # we're in an hg repo, so we can just get the information.
+        repo = HgRepository('.', '')
+        repo_data = {
+            'latesttag': repo._format_log('{latesttag}'),
+            'latesttagdistance': int(repo._format_log('{latesttagdistance}')),
+            'branch': repo._format_log('{branch}'),
+            'short_node': repo._format_log('{shortest(node, 6)}'),
+        }
+    else:
+        print 'ERROR: Not an hg repo, not an hg archive, cannot determine version.'
+        return
+
+    # null from loading tag from hg, None from yaml
+    if repo_data['latesttag'] in ['null', None]:
+        repo_data['latesttag'] = '0.0'
+
+    if repo_data['latesttagdistance'] == 0:
+        version = repo_data['latesttag']
+    else:
+        version = "%(latesttag)s.dev%(latesttagdistance)s-%(short_node)s" % repo_data
+    return version
