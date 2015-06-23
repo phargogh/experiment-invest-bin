@@ -105,6 +105,24 @@ class SVNRepository(Repository):
             warnings.warn('SVN version info does not work when in a dry run')
             return 'Unknown'
 
+class GitRepository(Repository):
+    tip = 'master'
+    statedir = '.git'
+    cmd = 'git'
+
+    def clone(self):
+        sh('git checkout %(url)s %(dest)s' % {'url': self.remote_path,
+                                              'dest': self.local_path})
+
+    def pull(self):
+        sh('git fetch', cwd=self.local_path)
+
+    def update(self, rev):
+        sh('git checkout %(rev)s .' % {'rev', rev}, cwd=self.local_path)
+
+    def current_rev(self):
+        return sh('git rev-parse --verify HEAD', cwd=self.local_path, capture=True)
+
 REPOS_DICT = {
     'users-guide': HgRepository('doc/users-guide', 'http://code.google.com/p/invest-natcap.users-guide'),
     'pygeoprocessing': HgRepository('src/pygeoprocessing', 'https://bitbucket.org/richpsharp/pygeoprocessing'),
@@ -774,8 +792,8 @@ def _build_fpm(version, bindir, pkg_type):
         ' -v %(version)s'
         ' -p dist/'
         ' --prefix /usr/lib/'
-        ' -m jdouglass@stanford.edu'
-        ' --url naturalcapitalproject.org'
+        ' -m James Douglass <jdouglass@stanford.edu>'
+        ' --url http://naturalcapitalproject.org'
         ' --vendor "Natural Capital Project"'
         ' --license "Modified BSD"'
         ' --provides "invest"'
