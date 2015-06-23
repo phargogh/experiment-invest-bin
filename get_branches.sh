@@ -1,3 +1,4 @@
+#!/bin/bash
 invest3repo=../../invest-natcap.invest-3
 investdata=$invest3repo/test/invest-data
 data_repos=../data_repos.txt
@@ -32,13 +33,30 @@ do
 done
 
 # based on the sha1's recorded, figure out which should be committed in which order.
-svn_commit=-1
+svn_commit=0
+if [ !-d "invest-sample-data" ]
+then
+    svn checkout http://ncp-yamato.stanford.edu/svn/invest-sample-data
+fi
 for data_rev in `cat $data_repos | awk -F ' ' '{print $3}' | sort | uniq`
 do
     svn_commit=$((svn_commit + 1))
     echo "$svn_commit $data_rev" >> $svn_data_commits
-    # COPY DATA AND SVN COMMIT HERE
+    hg up -r $data_rev -R $investdata
+    for name in `ls $investdata`
+    do
+        if [ "$name" != "test" ] && [ "$name" != "invest-sample-data" ] && [ -d "$name" ]
+        then
+            echo $name
+            cp -r $investdata/$name invest-sample-data/$name
+        fi
+    done
+    pushd invest-sample-data
+    svn add ./*
+    svn commit -m "Committing hg invest-data revision#$data_rev"
+    popd
 done
+exit
 
 for branchname in `hg heads --template="{branch}\n" -R $invest3repo`
 do
