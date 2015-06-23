@@ -1,11 +1,26 @@
 invest3repo=../../invest-natcap.invest-3
 investdata=$invest3repo/test/invest-data
 data_repos=../data_repos.txt
+svn_data_commits=../svn_data_revs.txt
+rm $svn_data_commits  # clean start for each script run
 rm $data_repos  #clean start for each script run
 
 function get_data_sha1 {
+# get the hg sha1 by either branchname or revset number.
     # $1 is the branchname we're looking for
-    grep $1 $data_repos | awk -F ' ' '{print $2}'
+    if [ "`echo $1 | grep [0-9]\\+`" != "" ]
+    then
+        # it's a rev.
+        grep $1$ $data_repos | awk -F ' ' '{print $2}'
+    else
+        # it's a branch
+        grep $1 $data_repos | awk -F ' ' '{print $2}'
+    fi
+}
+
+function get_svn_commit_by_sha1 {
+# get the SVN commit number by the hg data sha1
+    grep $1 $svn_data_commits | awk -F ' ' '{print $1}'
 }
 
 for branchname in `hg heads --template="{branch}\n" -R $invest3repo`
@@ -15,7 +30,13 @@ do
 done
 
 # based on the sha1's recorded, figure out which should be committed in which order.
-cat $data_repos
+svn_commit=0
+for data_rev in `cat $data_repos | awk -F ' ' '{print $3}' | sort | uniq`
+do
+    svn_commit=$((svn_commit + 1))
+    echo "$svn_commit $data_rev" >> $svn_data_commits
+    # COPY DATA AND SVN COMMIT HERE
+done
 
 for branchname in `hg heads --template="{branch}\n" -R $invest3repo`
 do
