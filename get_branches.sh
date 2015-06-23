@@ -43,6 +43,7 @@ done
 for branchname in `hg heads --template="{branch}\n" -R $invest3repo`
 do
     hg up -q -C -r default -R .
+    #rm -r src/natcap/invest
     if [ "$branchname" = "default" ] || [ "$branchname" = "master" ] || [ "`echo $branchname | grep -o feature/`" = "feature/" ]
     then
         target_branch=$branchname
@@ -52,6 +53,7 @@ do
     hg up -q -r $branchname -R $invest3repo
     #hg branch $target_branch -R .
     #./get.sh
+    #hg add src/natcap/invest
     #hg commit -m "Copying branch $branchname to natcap/invest:$target_branch"
     data_sha1=`get_data_sha1 $branchname` 
     echo 'SHA1' $data_sha1
