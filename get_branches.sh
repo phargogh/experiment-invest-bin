@@ -30,7 +30,7 @@ do
 done
 
 # based on the sha1's recorded, figure out which should be committed in which order.
-svn_commit=0
+svn_commit=-1
 for data_rev in `cat $data_repos | awk -F ' ' '{print $3}' | sort | uniq`
 do
     svn_commit=$((svn_commit + 1))
@@ -48,7 +48,10 @@ do
         target_branch=feature/$branchname
     fi
     hg up -r $branchname -R $invest3repo
-    hg branch $target_branch -R .
-    ./get.sh
+    #hg branch $target_branch -R .
+    #./get.sh
     hg commit -m "Copying branch $branchname to natcap/invest:$target_branch"
+    data_sha1="$(get_data_sha1 $branchname)"
+    svn_version="$(get_svn_commit_by_sha1 $data_sha1)"
+    sed -i "" "s/\"0\"/\"$svn_version\"/g" versions.json
 done
