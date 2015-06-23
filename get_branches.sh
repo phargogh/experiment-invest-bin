@@ -20,12 +20,14 @@ function get_data_sha1 {
 
 function get_svn_commit_by_sha1 {
 # get the SVN commit number by the hg data sha1
-    grep $1 $svn_data_commits | awk -F ' ' '{print $1}'
+    rev=`grep $1 $data_repos | head -n 1 | awk -F ' ' '{print $3}'`
+    output=`grep $rev$ $svn_data_commits | awk -F ' ' '{print $1}'`
+    echo $output
 }
 
 for branchname in `hg heads --template="{branch}\n" -R $invest3repo`
 do
-    hg up -C -r $branchname -R $invest3repo
+    hg up -q -C -r $branchname -R $invest3repo
     hg log -r . --template="$branchname {node} {rev}\n" -R $investdata >> $data_repos
 done
 
@@ -40,18 +42,20 @@ done
 
 for branchname in `hg heads --template="{branch}\n" -R $invest3repo`
 do
-    hg up -C -r default -R .
+    hg up -q -C -r default -R .
     if [ "$branchname" = "default" ] || [ "$branchname" = "master" ] || [ "`echo $branchname | grep -o feature/`" = "feature/" ]
     then
         target_branch=$branchname
     else
         target_branch=feature/$branchname
     fi
-    hg up -r $branchname -R $invest3repo
+    hg up -q -r $branchname -R $invest3repo
     #hg branch $target_branch -R .
     #./get.sh
-    hg commit -m "Copying branch $branchname to natcap/invest:$target_branch"
-    data_sha1="$(get_data_sha1 $branchname)"
-    svn_version="$(get_svn_commit_by_sha1 $data_sha1)"
+    #hg commit -m "Copying branch $branchname to natcap/invest:$target_branch"
+    data_sha1=`get_data_sha1 $branchname` 
+    echo 'SHA1' $data_sha1
+    svn_version=`get_svn_commit_by_sha1 $data_sha1`
+    echo 'SVN' $svn_version
     sed -i "" "s/\"0\"/\"$svn_version\"/g" versions.json
 done
